@@ -4,6 +4,8 @@ Metrics for Lightdash models.
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
+from .types import Model, Metric as MetricProtocol
+
 
 @dataclass
 class Metric:
@@ -48,7 +50,7 @@ class Metrics:
     
     Will fetch metrics from API on first access if not already cached.
     """
-    def __init__(self, model: "Model"):
+    def __init__(self, model: Model):
         self._model = model
         self._metrics: Optional[Dict[str, Metric]] = None
 

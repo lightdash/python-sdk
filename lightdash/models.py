@@ -4,6 +4,7 @@ Models for interacting with Lightdash explores.
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Union, Sequence
 
+from .types import Model as ModelProtocol, Client
 from .metrics import Metric, Metrics
 from .dimensions import Dimension, Dimensions
 from .query import Query
@@ -20,7 +21,7 @@ class Model:
     description: Optional[str] = None
 
     def __post_init__(self):
-        self._client: Optional["Client"] = None
+        self._client: Optional[Client] = None
         self.metrics = Metrics(self)
         self.dimensions = Dimensions(self)
 
@@ -34,7 +35,7 @@ class Model:
         else:
             p.text(str(self))
 
-    def _set_client(self, client: "Client") -> None:
+    def _set_client(self, client: Client) -> None:
         """Set the client reference for making API calls."""
         self._client = client
 
@@ -126,7 +127,7 @@ class Models:
     
     Will fetch models from API on first access if not already cached.
     """
-    def __init__(self, client: "Client"):
+    def __init__(self, client: Client):
         self._client = client
         self._models: Optional[Dict[str, Model]] = None
 

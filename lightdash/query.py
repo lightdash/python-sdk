@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional, Union, Sequence
 
 from .dimensions import Dimension
 from .metrics import Metric
+from .types import Model
 
 
 class Query:
@@ -32,7 +33,7 @@ class Query:
     """
     def __init__(
         self,
-        model: "Model",
+        model: Model,
         metrics: Sequence[Union[str, Metric]],
         dimensions: Sequence[Union[str, Dimension]] = (),
         limit: int = 50,

@@ -4,6 +4,8 @@ Dimensions for Lightdash models.
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
+from .types import Model, Dimension as DimensionProtocol
+
 
 @dataclass
 class Dimension:
@@ -48,7 +50,7 @@ class Dimensions:
     
     Will fetch dimensions from API on first access if not already cached.
     """
-    def __init__(self, model: "Model"):
+    def __init__(self, model: Model):
         self._model = model
         self._dimensions: Optional[Dict[str, Dimension]] = None
 
