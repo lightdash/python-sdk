@@ -1,0 +1,5 @@
+---
+description: Don't modify .ipynb files
+globs: **/*.ipynb
+---
+Don't make changes to ipynb files.
