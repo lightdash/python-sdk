@@ -33,11 +33,13 @@ class Client:
         instance_url (str): The URL of your Lightdash instance
         access_token (str): The access token for authentication
         project_uuid (str): The UUID of the project to interact with
+        proxy_authorization (str): An optional value for the proxy authorization header
     """
-    def __init__(self, instance_url: str, access_token: str, project_uuid: str):
+    def __init__(self, instance_url: str, access_token: str, project_uuid: str, proxy_authorization: Optional[str] = None):
         self.instance_url = instance_url.rstrip('/')
         self.access_token = access_token
         self.project_uuid = project_uuid
+        self.proxy_authorization = proxy_authorization
         self.models = Models(self)
 
     def _log_request(
@@ -85,12 +87,16 @@ class Client:
         """
         url = urljoin(self.instance_url, path)
         self._log_request(method, url, params, json)
-        
-        with httpx.Client(
-            headers={
+
+        headers = {
                 "Authorization": f"ApiKey {self.access_token}",
                 "Accept": "application/json",
-            },
+        }
+        if self.proxy_authorization is not None:
+            headers["Proxy-Authorization"] = self.proxy_authorization
+        
+        with httpx.Client(
+            headers=headers,
             timeout=30.0
         ) as client:
             response = client.request(
