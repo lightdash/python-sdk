@@ -156,4 +156,11 @@ class Models:
     def list(self) -> List[Model]:
         """List all available models."""
         self._ensure_loaded()
-        return list(self._models.values()) 
+        return list(self._models.values())
+
+    def get_model(self, name: str) -> Model:
+        """Get a model by name, fetching from API if needed."""
+        self._ensure_loaded()
+        if self._models is None or name not in self._models:
+            raise ValueError(f"No model named '{name}' found")
+        return self._models[name]
