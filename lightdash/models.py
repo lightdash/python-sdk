@@ -142,11 +142,7 @@ class Models:
 
     def __getattr__(self, name: str) -> Model:
         """Get a model by name, fetching from API if needed."""
-        self._ensure_loaded()
-        try:
-            return self._models[name]
-        except KeyError:
-            raise AttributeError(f"No model named '{name}' found")
+        return self.get(name)
 
     def __dir__(self) -> List[str]:
         """Enable tab completion by returning list of model names."""
@@ -158,9 +154,10 @@ class Models:
         self._ensure_loaded()
         return list(self._models.values())
 
-    def get_model(self, name: str) -> Model:
+    def get(self, name: str) -> Model:
         """Get a model by name, fetching from API if needed."""
         self._ensure_loaded()
-        if self._models is None or name not in self._models:
-            raise ValueError(f"No model named '{name}' found")
-        return self._models[name]
+        try:
+            return self._models[name]
+        except KeyError:
+            raise AttributeError(f"No model named '{name}' found")
