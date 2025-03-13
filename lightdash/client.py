@@ -158,4 +158,15 @@ class Client:
             LightdashError: If the API returns an error response
             httpx.HTTPError: If there's a network or HTTP protocol error
         """
-        return self.models.list() 
+        return self.models.list()
+
+    def get_model(self, name: str) -> Model:
+        """Get a model by name.
+
+        Args:
+            name: The name of the model to get
+
+        Returns:
+            A Model object representing the requested explore
+        """
+        return self.models.get(name)
