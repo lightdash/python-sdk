@@ -23,8 +23,8 @@ class Model(Protocol):
     """Type protocol for a Lightdash model."""
     name: str
     type: str
-    database_name: str
-    schema_name: str
+    database_name: Optional[str]
+    schema_name: Optional[str]
     label: Optional[str]
     description: Optional[str]
 
