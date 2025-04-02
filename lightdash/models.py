@@ -108,13 +108,16 @@ class Model:
     @classmethod
     def from_api_response(cls, data: Dict[str, Any]) -> "Model":
         """Create a Model instance from API response data."""
+        if "errors" in data:
+            print(f"Model has errors: {data['name']}")
+
         return cls(
             name=data["name"],
-            type=data["type"],
-            database_name=data["databaseName"],
-            schema_name=data["schemaName"],
-            label=data.get("label"),
-            description=data.get("description"),
+            type=data.get("type", "error" if "errors" in data else "default"),
+            database_name=data.get("databaseName", None),
+            schema_name=data.get("schemaName", None),
+            label=data.get("label", None),
+            description=data.get("description", None),
         )
 
 
