@@ -1,9 +1,11 @@
 """
 Models for interacting with Lightdash explores.
 """
+
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Union, Sequence
 
+from .filter import DimensionFilter, Filters
 from .types import Model as ModelProtocol, Client
 from .metrics import Metric, Metrics
 from .dimensions import Dimension, Dimensions
@@ -13,6 +15,7 @@ from .query import Query
 @dataclass
 class Model:
     """A Lightdash model (explore)."""
+
     name: str
     type: str
     database_name: str
@@ -54,6 +57,7 @@ class Model:
         self,
         metrics: Union[str, Metric, Sequence[Union[str, Metric]]],
         dimensions: Union[str, Dimension, Sequence[Union[str, Dimension]]] = (),
+        filters: Optional[Union[DimensionFilter, Filters]] = None,
         limit: int = 50,
     ) -> Query:
         """
@@ -69,7 +73,9 @@ class Model:
         """
         metrics_seq = [metrics] if isinstance(metrics, (str, Metric)) else metrics
         dimensions_seq = [dimensions] if isinstance(dimensions, (str, Dimension)) else dimensions
-        return Query(self, metrics=metrics_seq, dimensions=dimensions_seq, limit=limit)
+        return Query(
+            self, metrics=metrics_seq, dimensions=dimensions_seq, filters=filters, limit=limit
+        )
 
     def list_metrics(self) -> List["Metric"]:
         """
@@ -124,12 +130,13 @@ class Model:
 class Models:
     """
     Container for Lightdash models with attribute-based access.
-    
+
     Allows accessing models as attributes, e.g.:
         client.models.my_model_name
-    
+
     Will fetch models from API on first access if not already cached.
     """
+
     def __init__(self, client: Client):
         self._client = client
         self._models: Optional[Dict[str, Model]] = None
