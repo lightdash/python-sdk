@@ -50,7 +50,9 @@ date_filters = [
     "is between",
 ]
 
-allowed_values = set(numeric_filters + string_filters + boolean_filters + date_filters)
+allowed_values = set(
+    numeric_filters + string_filters + boolean_filters + date_filters
+)
 
 
 @dataclass
@@ -63,7 +65,9 @@ class DimensionFilter:
         if not isinstance(self.values, list):
             self.values = [self.values]
 
-        assert self.operator in allowed_values, f"operator {self.operator} not allowed"
+        assert (
+            self.operator in allowed_values
+        ), f"operator {self.operator} not allowed"
 
         assert isinstance(
             self.field, Dimension

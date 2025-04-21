@@ -181,7 +181,9 @@ def test_list_dimensions(first_model):
         assert isinstance(dimension, Dimension)
         assert isinstance(dimension.name, str)
         assert dimension.label is None or isinstance(dimension.label, str)
-        assert dimension.description is None or isinstance(dimension.description, str)
+        assert dimension.description is None or isinstance(
+            dimension.description, str
+        )
 
 
 def test_dimensions_caching(first_model):
@@ -223,11 +225,17 @@ def test_dimensions_require_client(client_params):
     """Test that dimensions cannot be fetched without a client reference."""
     # Create a model without a client reference
     model = Model(
-        name="test_model", type="default", database_name="test_db", schema_name="test_schema"
+        name="test_model",
+        type="default",
+        database_name="test_db",
+        schema_name="test_schema",
     )
 
     # Attempting to list dimensions should raise an error
-    with pytest.raises(RuntimeError, match="Model not properly initialized with client reference"):
+    with pytest.raises(
+        RuntimeError,
+        match="Model not properly initialized with client reference",
+    ):
         model.dimensions.list()
 
 
@@ -243,9 +251,15 @@ def test_query_execution(first_model):
     # Execute query with both field IDs and objects
     results = first_model.query(
         dimensions=(
-            [dimensions[0], dimensions[0].field_id] if len(dimensions) > 1 else [dimensions[0]]
+            [dimensions[0], dimensions[0].field_id]
+            if len(dimensions) > 1
+            else [dimensions[0]]
         ),
-        metrics=[metrics[0], metrics[0].field_id] if len(metrics) > 1 else [metrics[0]],
+        metrics=(
+            [metrics[0], metrics[0].field_id]
+            if len(metrics) > 1
+            else [metrics[0]]
+        ),
         limit=10,
     ).to_records()
 
@@ -302,57 +316,93 @@ def test_query_limit_validation(first_model):
     # Test invalid limits
     with pytest.raises(ValueError, match="Limit must be between 1 and 5000"):
         first_model.query(
-            dimensions=[dimensions[0].field_id], metrics=[metrics[0].field_id], limit=0
+            dimensions=[dimensions[0].field_id],
+            metrics=[metrics[0].field_id],
+            limit=0,
         ).to_records()
 
     with pytest.raises(ValueError, match="Limit must be between 1 and 5000"):
         first_model.query(
-            dimensions=[dimensions[0].field_id], metrics=[metrics[0].field_id], limit=5001
+            dimensions=[dimensions[0].field_id],
+            metrics=[metrics[0].field_id],
+            limit=5001,
         ).to_records()
 
 
 def test_query_requires_client(client_params):
     """Test that queries cannot be executed without a client reference."""
     model = Model(
-        name="test_model", type="default", database_name="test_db", schema_name="test_schema"
+        name="test_model",
+        type="default",
+        database_name="test_db",
+        schema_name="test_schema",
     )
 
-    with pytest.raises(RuntimeError, match="Model not properly initialized with client reference"):
-        model.query(dimensions=["test_model_dimension"], metrics=["test_model_metric"]).to_records()
+    with pytest.raises(
+        RuntimeError,
+        match="Model not properly initialized with client reference",
+    ):
+        model.query(
+            dimensions=["test_model_dimension"], metrics=["test_model_metric"]
+        ).to_records()
 
 
 def test_metric_field_id():
     """Test that metrics generate correct field IDs."""
     metric = Metric(
-        name="revenue", model_name="orders", label="Revenue", description="Total revenue"
+        name="revenue",
+        model_name="orders",
+        label="Revenue",
+        description="Total revenue",
     )
     assert metric.field_id == "orders_revenue"
 
 
 def test_dimension_field_id():
     """Test that dimensions generate correct field IDs."""
-    dimension = Dimension(name="email", model_name="users", label="Email", description="User email")
+    dimension = Dimension(
+        name="email",
+        model_name="users",
+        label="Email",
+        description="User email",
+    )
     assert dimension.field_id == "users_email"
 
 
 def test_query_to_df_no_results():
     """Test that to_df raises an error when no query has been executed."""
     model = Model(
-        name="test_model", type="default", database_name="test_db", schema_name="test_schema"
+        name="test_model",
+        type="default",
+        database_name="test_db",
+        schema_name="test_schema",
     )
 
-    with pytest.raises(RuntimeError, match="Model not properly initialized with client reference"):
-        model.query(dimensions=["test_model_dimension"], metrics=["test_model_metric"]).to_df()
+    with pytest.raises(
+        RuntimeError,
+        match="Model not properly initialized with client reference",
+    ):
+        model.query(
+            dimensions=["test_model_dimension"], metrics=["test_model_metric"]
+        ).to_df()
 
 
 def test_query_to_json_no_results():
     """Test that to_json raises an error when no query has been executed."""
     model = Model(
-        name="test_model", type="default", database_name="test_db", schema_name="test_schema"
+        name="test_model",
+        type="default",
+        database_name="test_db",
+        schema_name="test_schema",
     )
 
-    with pytest.raises(RuntimeError, match="Model not properly initialized with client reference"):
-        model.query(dimensions=["test_model_dimension"], metrics=["test_model_metric"]).to_json()
+    with pytest.raises(
+        RuntimeError,
+        match="Model not properly initialized with client reference",
+    ):
+        model.query(
+            dimensions=["test_model_dimension"], metrics=["test_model_metric"]
+        ).to_json()
 
 
 def test_query_to_df_pandas(first_model):
@@ -374,7 +424,9 @@ def test_query_to_df_pandas(first_model):
     metric_label = metrics[0].label or metrics[0].name
 
     # Execute query and convert to DataFrame
-    df = first_model.query(dimensions=[dimensions[0]], metrics=[metrics[0]], limit=10).to_df()
+    df = first_model.query(
+        dimensions=[dimensions[0]], metrics=[metrics[0]], limit=10
+    ).to_df()
 
     # Verify DataFrame structure
     assert isinstance(df, pd.DataFrame)
@@ -401,9 +453,9 @@ def test_query_to_df_polars(first_model):
     metric_label = metrics[0].label or metrics[0].name
 
     # Execute query and convert to DataFrame
-    df = first_model.query(dimensions=[dimensions[0]], metrics=[metrics[0]], limit=10).to_df(
-        backend="polars"
-    )
+    df = first_model.query(
+        dimensions=[dimensions[0]], metrics=[metrics[0]], limit=10
+    ).to_df(backend="polars")
 
     # Verify DataFrame structure
     assert isinstance(df, pl.DataFrame)
@@ -422,9 +474,9 @@ def test_query_to_df_invalid_backend(first_model):
 
     # Execute query
     with pytest.raises(ValueError, match="Unsupported DataFrame backend"):
-        first_model.query(dimensions=[dimensions[0]], metrics=[metrics[0]], limit=10).to_df(
-            backend="invalid"
-        )
+        first_model.query(
+            dimensions=[dimensions[0]], metrics=[metrics[0]], limit=10
+        ).to_df(backend="invalid")
 
 
 def test_query_with_dimension_filter(first_model):
@@ -457,7 +509,10 @@ def test_query_with_dimension_filter(first_model):
 
     # Execute query with the filter
     filtered_results = first_model.query(
-        dimensions=[dimensions[0]], metrics=[metrics[0]], filters=dimension_filter, limit=10
+        dimensions=[dimensions[0]],
+        metrics=[metrics[0]],
+        filters=dimension_filter,
+        limit=10,
     ).to_records()
 
     # Verify that all results match the filter value
@@ -480,7 +535,9 @@ def test_query_with_filters_class(first_model):
 
     # First run a query without filters to get some values
     results = first_model.query(
-        dimensions=dimensions[:2], metrics=[metrics[0]], limit=10  # Use first two dimensions
+        dimensions=dimensions[:2],
+        metrics=[metrics[0]],
+        limit=10,  # Use first two dimensions
     ).to_records()
 
     if not results:
@@ -493,16 +550,23 @@ def test_query_with_filters_class(first_model):
     filter2_value = results[0][dim2_label]
 
     # Create filters for both dimensions
-    filter1 = DimensionFilter(field=dimensions[0], operator="equals", values=[filter1_value])
+    filter1 = DimensionFilter(
+        field=dimensions[0], operator="equals", values=[filter1_value]
+    )
 
-    filter2 = DimensionFilter(field=dimensions[1], operator="equals", values=[filter2_value])
+    filter2 = DimensionFilter(
+        field=dimensions[1], operator="equals", values=[filter2_value]
+    )
 
     # Create a Filters object with both filters
     filters = Filters(filters=[filter1, filter2])
 
     # Execute query with the filters
     filtered_results = first_model.query(
-        dimensions=dimensions[:2], metrics=[metrics[0]], filters=filters, limit=10
+        dimensions=dimensions[:2],
+        metrics=[metrics[0]],
+        filters=filters,
+        limit=10,
     ).to_records()
 
     # Verify that all results match both filter values

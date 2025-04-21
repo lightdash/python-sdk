@@ -66,11 +66,18 @@ class Query:
             raise ValueError("Limit must be between 1 and 5000")
 
         if self._model._client is None:
-            raise RuntimeError("Model not properly initialized with client reference")
+            raise RuntimeError(
+                "Model not properly initialized with client reference"
+            )
 
         # Convert dimensions/metrics to field IDs if they're objects
-        dimension_ids = [d.field_id if isinstance(d, Dimension) else d for d in self._dimensions]
-        metric_ids = [m.field_id if isinstance(m, Metric) else m for m in self._metrics]
+        dimension_ids = [
+            d.field_id if isinstance(d, Dimension) else d
+            for d in self._dimensions
+        ]
+        metric_ids = [
+            m.field_id if isinstance(m, Metric) else m for m in self._metrics
+        ]
 
         # Construct query payload
         payload = {
@@ -97,7 +104,9 @@ class Query:
         rows = response["rows"]
         self._last_results = [
             {
-                self._field_labels.get(field_id, field_id): row[field_id]["value"]["raw"]
+                self._field_labels.get(field_id, field_id): row[field_id][
+                    "value"
+                ]["raw"]
                 for field_id in row.keys()
             }
             for row in rows
@@ -168,5 +177,6 @@ class Query:
             return pl.DataFrame(self._last_results)
         else:
             raise ValueError(
-                f"Unsupported DataFrame backend: {backend}. " "Use 'pandas' or 'polars'"
+                f"Unsupported DataFrame backend: {backend}. "
+                "Use 'pandas' or 'polars'"
             )

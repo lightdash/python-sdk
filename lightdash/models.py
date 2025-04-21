@@ -45,9 +45,13 @@ class Model:
     def _fetch_table_data(self) -> Dict[str, Any]:
         """Fetch the table data from the API."""
         if self._client is None:
-            raise RuntimeError("Model not properly initialized with client reference")
+            raise RuntimeError(
+                "Model not properly initialized with client reference"
+            )
 
-        path = f"/api/v1/projects/{self._client.project_uuid}/explores/{self.name}"
+        path = (
+            f"/api/v1/projects/{self._client.project_uuid}/explores/{self.name}"
+        )
         data = self._client._make_request("GET", path)
 
         base_table = data["baseTable"]
@@ -71,10 +75,20 @@ class Model:
         Returns:
             A Query object that can be used to fetch results.
         """
-        metrics_seq = [metrics] if isinstance(metrics, (str, Metric)) else metrics
-        dimensions_seq = [dimensions] if isinstance(dimensions, (str, Dimension)) else dimensions
+        metrics_seq = (
+            [metrics] if isinstance(metrics, (str, Metric)) else metrics
+        )
+        dimensions_seq = (
+            [dimensions]
+            if isinstance(dimensions, (str, Dimension))
+            else dimensions
+        )
         return Query(
-            self, metrics=metrics_seq, dimensions=dimensions_seq, filters=filters, limit=limit
+            self,
+            metrics=metrics_seq,
+            dimensions=dimensions_seq,
+            filters=filters,
+            limit=limit,
         )
 
     def list_metrics(self) -> List["Metric"]:
