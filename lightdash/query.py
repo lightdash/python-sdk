@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional, Union, Sequence
 
 from .dimensions import Dimension
 from .metrics import Metric
-from .filter import DimensionFilter, Filters
+from .filter import DimensionFilter, CompositeFilter
 from .types import Model
 
 
@@ -39,16 +39,16 @@ class Query:
         model: Model,
         metrics: Sequence[Union[str, Metric]],
         dimensions: Sequence[Union[str, Dimension]] = (),
-        filters: Optional[Union[DimensionFilter, Filters]] = None,
+        filters: Optional[Union[DimensionFilter, CompositeFilter]] = None,
         limit: int = 50,
     ):
         self._model = model
         self._dimensions = dimensions
         self._metrics = metrics
         if filters is None:
-            self._filters = Filters()
+            self._filters = CompositeFilter()
         elif isinstance(filters, DimensionFilter):
-            self._filters = Filters(filters=[filters])
+            self._filters = CompositeFilter(filters=[filters])
         else:
             self._filters = filters
         self._limit = limit

@@ -5,7 +5,7 @@ Models for interacting with Lightdash explores.
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Union, Sequence
 
-from .filter import DimensionFilter, Filters
+from .filter import DimensionFilter, CompositeFilter
 from .types import Model as ModelProtocol, Client
 from .metrics import Metric, Metrics
 from .dimensions import Dimension, Dimensions
@@ -61,7 +61,7 @@ class Model:
         self,
         metrics: Union[str, Metric, Sequence[Union[str, Metric]]],
         dimensions: Union[str, Dimension, Sequence[Union[str, Dimension]]] = (),
-        filters: Optional[Union[DimensionFilter, Filters]] = None,
+        filters: Optional[Union[DimensionFilter, CompositeFilter]] = None,
         limit: int = 50,
     ) -> Query:
         """

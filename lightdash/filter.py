@@ -82,7 +82,7 @@ class DimensionFilter:
 
 
 @dataclass
-class Filters:
+class CompositeFilter:
     """
     Filters are a list of dimension filters that are applied to a query.
     Later this will also represent complex filters with AND, OR, NOT, etc.
@@ -97,6 +97,11 @@ class Filters:
     def to_dict(self):
         out = []
         for filter in self.filters:
+            # Check that the filter is not a composite filter
+            assert hasattr(
+                filter, "field"
+            ), "Multi-level filter composites not supported yet"
+            # Check that we have at most one filter per field
             if filter.field in out:
                 raise NotImplementedError(
                     f"Multiple filters for field {filter.field} not implemented yet"

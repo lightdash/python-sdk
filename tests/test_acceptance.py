@@ -524,7 +524,7 @@ def test_query_with_dimension_filter(first_model):
 
 def test_query_with_filters_class(first_model):
     """Test that we can execute queries with multiple filters using the Filters class."""
-    from lightdash.filter import DimensionFilter, Filters
+    from lightdash.filter import DimensionFilter, CompositeFilter
 
     # Get first available dimension and metric
     dimensions = first_model.list_dimensions()
@@ -559,7 +559,7 @@ def test_query_with_filters_class(first_model):
     )
 
     # Create a Filters object with both filters
-    filters = Filters(filters=[filter1, filter2])
+    filters = CompositeFilter(filters=[filter1, filter2])
 
     # Execute query with the filters
     filtered_results = first_model.query(
