@@ -33,11 +33,18 @@ class Client:
         instance_url (str): The URL of your Lightdash instance
         access_token (str): The access token for authentication
         project_uuid (str): The UUID of the project to interact with
+        config (Dict[str, Any], optional): Configuration options. Supported keys:
+            - timeout (float): The timeout in seconds for HTTP requests. Defaults to 30.0
     """
-    def __init__(self, instance_url: str, access_token: str, project_uuid: str):
+    def __init__(self, instance_url: str, access_token: str, project_uuid: str, config: Optional[Dict[str, Any]] = None):
         self.instance_url = instance_url.rstrip('/')
         self.access_token = access_token
         self.project_uuid = project_uuid
+        
+        # Extract config values with defaults
+        config = config or {}
+        self.timeout = config.get('timeout', 30.0)
+        
         self.models = Models(self)
 
     def _log_request(
@@ -91,7 +98,7 @@ class Client:
                 "Authorization": f"ApiKey {self.access_token}",
                 "Accept": "application/json",
             },
-            timeout=30.0
+            timeout=self.timeout
         ) as client:
             response = client.request(
                 method=method,
