@@ -1,17 +1,19 @@
 """
 Query functionality for Lightdash models.
 """
+
 from typing import Any, Dict, List, Optional, Union, Sequence
 
 from .dimensions import Dimension
 from .metrics import Metric
+from .filter import DimensionFilter, CompositeFilter
 from .types import Model
 
 
 class Query:
     """
     A Lightdash query builder and executor.
-    
+
     Allows executing queries against a model to fetch data.
     Example:
         # Single metric, no dimensions
@@ -31,16 +33,24 @@ class Query:
             dimensions=[model.dimensions.partner_name, model.dimensions.order_date]
         ).to_df()
     """
+
     def __init__(
         self,
         model: Model,
         metrics: Sequence[Union[str, Metric]],
         dimensions: Sequence[Union[str, Dimension]] = (),
+        filters: Optional[Union[DimensionFilter, CompositeFilter]] = None,
         limit: int = 50,
     ):
         self._model = model
         self._dimensions = dimensions
         self._metrics = metrics
+        if filters is None:
+            self._filters = CompositeFilter()
+        elif isinstance(filters, DimensionFilter):
+            self._filters = CompositeFilter(filters=[filters])
+        else:
+            self._filters = filters
         self._limit = limit
         self._last_results: Optional[List[Dict[str, Any]]] = None
         self._field_labels: Optional[Dict[str, str]] = None
@@ -56,7 +66,9 @@ class Query:
             raise ValueError("Limit must be between 1 and 5000")
 
         if self._model._client is None:
-            raise RuntimeError("Model not properly initialized with client reference")
+            raise RuntimeError(
+                "Model not properly initialized with client reference"
+            )
 
         # Convert dimensions/metrics to field IDs if they're objects
         dimension_ids = [
@@ -64,8 +76,7 @@ class Query:
             for d in self._dimensions
         ]
         metric_ids = [
-            m.field_id if isinstance(m, Metric) else m
-            for m in self._metrics
+            m.field_id if isinstance(m, Metric) else m for m in self._metrics
         ]
 
         # Construct query payload
@@ -73,7 +84,7 @@ class Query:
             "exploreName": self._model.name,
             "dimensions": dimension_ids,
             "metrics": metric_ids,
-            "filters": {},
+            "filters": self._filters.to_dict(),
             "limit": self._limit,
             "tableCalculations": [],
             "sorts": [],
@@ -93,7 +104,9 @@ class Query:
         rows = response["rows"]
         self._last_results = [
             {
-                self._field_labels.get(field_id, field_id): row[field_id]["value"]["raw"]
+                self._field_labels.get(field_id, field_id): row[field_id][
+                    "value"
+                ]["raw"]
                 for field_id in row.keys()
             }
             for row in rows
@@ -118,10 +131,10 @@ class Query:
     def to_json(self) -> List[Dict[str, Any]]:
         """
         Alias for to_records() for backward compatibility.
-        
+
         Returns:
             List of dictionaries, where each dictionary represents a row of data.
-            
+
         See to_records() for more details.
         """
         return self.to_records()
@@ -166,4 +179,4 @@ class Query:
             raise ValueError(
                 f"Unsupported DataFrame backend: {backend}. "
                 "Use 'pandas' or 'polars'"
-            ) 
+            )
