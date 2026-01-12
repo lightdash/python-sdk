@@ -6,6 +6,7 @@ These tests require valid credentials to be set in environment variables:
 - LIGHTDASH_ACCESS_TOKEN
 - LIGHTDASH_PROJECT_UUID
 """
+
 import os
 import pytest
 import logging
@@ -61,7 +62,7 @@ def first_model(client) -> Model:
 def test_client_initialization(client_params):
     """Test that the client initializes correctly with the provided credentials."""
     client = Client(**client_params)
-    assert client.instance_url == client_params["instance_url"].rstrip('/')
+    assert client.instance_url == client_params["instance_url"].rstrip("/")
     assert client.access_token == client_params["access_token"]
     assert client.project_uuid == client_params["project_uuid"]
 
@@ -84,20 +85,20 @@ def test_list_models(client):
 def test_model_attribute_access(client_params):
     """Test that we can access models as attributes."""
     client = Client(**client_params)
-    
+
     # First, list all models to get a name we can use
     models = client.list_models()
     if not models:
         pytest.skip("No models available to test attribute access")
-    
+
     # Get the first model's name
     model_name = models[0].name
-    
+
     # Access the same model via attribute
     model = getattr(client.models, model_name)
     assert isinstance(model, Model)
     assert model.name == model_name
-    
+
     # Verify that accessing a non-existent model raises AttributeError
     with pytest.raises(AttributeError):
         getattr(client.models, "non_existent_model")
@@ -106,19 +107,19 @@ def test_model_attribute_access(client_params):
 def test_model_caching(client_params):
     """Test that models are cached after first access."""
     client = Client(**client_params)
-    
+
     # First access should fetch from API
     models1 = client.list_models()
     if not models1:
         pytest.skip("No models available to test caching")
-    
+
     # Second access should use cache
     models2 = client.list_models()
-    
+
     # Both lists should be identical
     assert len(models1) == len(models2)
     assert all(m1.name == m2.name for m1, m2 in zip(models1, models2))
-    
+
     # Access via attribute should also use cache
     model = getattr(client.models, models1[0].name)
     assert model.name == models1[0].name
@@ -142,10 +143,10 @@ def test_metrics_caching(first_model):
     metrics1 = first_model.metrics.list()
     if not metrics1:
         pytest.skip("No metrics available to test caching")
-    
+
     # Second call should use cache
     metrics2 = first_model.metrics.list()
-    
+
     # Both lists should be identical
     assert len(metrics1) == len(metrics2)
     assert all(m1.name == m2.name for m1, m2 in zip(metrics1, metrics2))
@@ -157,15 +158,15 @@ def test_metric_attribute_access(first_model):
     metrics = first_model.list_metrics()
     if not metrics:
         pytest.skip("No metrics available to test attribute access")
-    
+
     # Get the first metric's name
     metric_name = metrics[0].name
-    
+
     # Access the same metric via attribute
     metric = getattr(first_model.metrics, metric_name)
     assert isinstance(metric, Metric)
     assert metric.name == metric_name
-    
+
     # Verify that accessing a non-existent metric raises AttributeError
     with pytest.raises(AttributeError):
         getattr(first_model.metrics, "non_existent_metric")
@@ -180,7 +181,9 @@ def test_list_dimensions(first_model):
         assert isinstance(dimension, Dimension)
         assert isinstance(dimension.name, str)
         assert dimension.label is None or isinstance(dimension.label, str)
-        assert dimension.description is None or isinstance(dimension.description, str)
+        assert dimension.description is None or isinstance(
+            dimension.description, str
+        )
 
 
 def test_dimensions_caching(first_model):
@@ -189,10 +192,10 @@ def test_dimensions_caching(first_model):
     dimensions1 = first_model.dimensions.list()
     if not dimensions1:
         pytest.skip("No dimensions available to test caching")
-    
+
     # Second call should use cache
     dimensions2 = first_model.dimensions.list()
-    
+
     # Both lists should be identical
     assert len(dimensions1) == len(dimensions2)
     assert all(d1.name == d2.name for d1, d2 in zip(dimensions1, dimensions2))
@@ -204,15 +207,15 @@ def test_dimension_attribute_access(first_model):
     dimensions = first_model.list_dimensions()
     if not dimensions:
         pytest.skip("No dimensions available to test attribute access")
-    
+
     # Get the first dimension's name
     dimension_name = dimensions[0].name
-    
+
     # Access the same dimension via attribute
     dimension = getattr(first_model.dimensions, dimension_name)
     assert isinstance(dimension, Dimension)
     assert dimension.name == dimension_name
-    
+
     # Verify that accessing a non-existent dimension raises AttributeError
     with pytest.raises(AttributeError):
         getattr(first_model.dimensions, "non_existent_dimension")
@@ -225,11 +228,14 @@ def test_dimensions_require_client(client_params):
         name="test_model",
         type="default",
         database_name="test_db",
-        schema_name="test_schema"
+        schema_name="test_schema",
     )
-    
+
     # Attempting to list dimensions should raise an error
-    with pytest.raises(RuntimeError, match="Model not properly initialized with client reference"):
+    with pytest.raises(
+        RuntimeError,
+        match="Model not properly initialized with client reference",
+    ):
         model.dimensions.list()
 
 
@@ -238,17 +244,25 @@ def test_query_execution(first_model):
     # Get first available dimension and metric
     dimensions = first_model.list_dimensions()
     metrics = first_model.list_metrics()
-    
+
     if not dimensions or not metrics:
         pytest.skip("No dimensions or metrics available for testing")
-    
+
     # Execute query with both field IDs and objects
     results = first_model.query(
-        dimensions=[dimensions[0], dimensions[0].field_id] if len(dimensions) > 1 else [dimensions[0]],
-        metrics=[metrics[0], metrics[0].field_id] if len(metrics) > 1 else [metrics[0]],
-        limit=10
+        dimensions=(
+            [dimensions[0], dimensions[0].field_id]
+            if len(dimensions) > 1
+            else [dimensions[0]]
+        ),
+        metrics=(
+            [metrics[0], metrics[0].field_id]
+            if len(metrics) > 1
+            else [metrics[0]]
+        ),
+        limit=10,
     ).to_records()
-    
+
     # Verify results structure
     assert isinstance(results, list)
     if results:  # If any results returned
@@ -266,23 +280,21 @@ def test_query_with_field_ids(first_model):
     # Get first available dimension and metric to get their field IDs
     dimensions = first_model.list_dimensions()
     metrics = first_model.list_metrics()
-    
+
     if not dimensions or not metrics:
         pytest.skip("No dimensions or metrics available for testing")
-    
+
     # Get field IDs and labels
     dim_field_id = dimensions[0].field_id
     metric_field_id = metrics[0].field_id
     dim_label = dimensions[0].label or dimensions[0].name
     metric_label = metrics[0].label or metrics[0].name
-    
+
     # Execute query using field IDs as strings
     results = first_model.query(
-        dimensions=[dim_field_id],
-        metrics=[metric_field_id],
-        limit=10
+        dimensions=[dim_field_id], metrics=[metric_field_id], limit=10
     ).to_records()
-    
+
     # Verify results structure
     assert isinstance(results, list)
     if results:  # If any results returned
@@ -297,23 +309,23 @@ def test_query_limit_validation(first_model):
     """Test that query limits are properly validated."""
     dimensions = first_model.list_dimensions()
     metrics = first_model.list_metrics()
-    
+
     if not dimensions or not metrics:
         pytest.skip("No dimensions or metrics available for testing")
-    
+
     # Test invalid limits
     with pytest.raises(ValueError, match="Limit must be between 1 and 5000"):
         first_model.query(
             dimensions=[dimensions[0].field_id],
             metrics=[metrics[0].field_id],
-            limit=0
+            limit=0,
         ).to_records()
-    
+
     with pytest.raises(ValueError, match="Limit must be between 1 and 5000"):
         first_model.query(
             dimensions=[dimensions[0].field_id],
             metrics=[metrics[0].field_id],
-            limit=5001
+            limit=5001,
         ).to_records()
 
 
@@ -323,13 +335,15 @@ def test_query_requires_client(client_params):
         name="test_model",
         type="default",
         database_name="test_db",
-        schema_name="test_schema"
+        schema_name="test_schema",
     )
-    
-    with pytest.raises(RuntimeError, match="Model not properly initialized with client reference"):
+
+    with pytest.raises(
+        RuntimeError,
+        match="Model not properly initialized with client reference",
+    ):
         model.query(
-            dimensions=["test_model_dimension"],
-            metrics=["test_model_metric"]
+            dimensions=["test_model_dimension"], metrics=["test_model_metric"]
         ).to_records()
 
 
@@ -339,7 +353,7 @@ def test_metric_field_id():
         name="revenue",
         model_name="orders",
         label="Revenue",
-        description="Total revenue"
+        description="Total revenue",
     )
     assert metric.field_id == "orders_revenue"
 
@@ -350,7 +364,7 @@ def test_dimension_field_id():
         name="email",
         model_name="users",
         label="Email",
-        description="User email"
+        description="User email",
     )
     assert dimension.field_id == "users_email"
 
@@ -361,13 +375,15 @@ def test_query_to_df_no_results():
         name="test_model",
         type="default",
         database_name="test_db",
-        schema_name="test_schema"
+        schema_name="test_schema",
     )
-    
-    with pytest.raises(RuntimeError, match="Model not properly initialized with client reference"):
+
+    with pytest.raises(
+        RuntimeError,
+        match="Model not properly initialized with client reference",
+    ):
         model.query(
-            dimensions=["test_model_dimension"],
-            metrics=["test_model_metric"]
+            dimensions=["test_model_dimension"], metrics=["test_model_metric"]
         ).to_df()
 
 
@@ -377,13 +393,15 @@ def test_query_to_json_no_results():
         name="test_model",
         type="default",
         database_name="test_db",
-        schema_name="test_schema"
+        schema_name="test_schema",
     )
-    
-    with pytest.raises(RuntimeError, match="Model not properly initialized with client reference"):
+
+    with pytest.raises(
+        RuntimeError,
+        match="Model not properly initialized with client reference",
+    ):
         model.query(
-            dimensions=["test_model_dimension"],
-            metrics=["test_model_metric"]
+            dimensions=["test_model_dimension"], metrics=["test_model_metric"]
         ).to_json()
 
 
@@ -397,21 +415,19 @@ def test_query_to_df_pandas(first_model):
     # Get first available dimension and metric
     dimensions = first_model.list_dimensions()
     metrics = first_model.list_metrics()
-    
+
     if not dimensions or not metrics:
         pytest.skip("No dimensions or metrics available for testing")
-    
+
     # Get labels for verification
     dim_label = dimensions[0].label or dimensions[0].name
     metric_label = metrics[0].label or metrics[0].name
-    
+
     # Execute query and convert to DataFrame
     df = first_model.query(
-        dimensions=[dimensions[0]],
-        metrics=[metrics[0]],
-        limit=10
+        dimensions=[dimensions[0]], metrics=[metrics[0]], limit=10
     ).to_df()
-    
+
     # Verify DataFrame structure
     assert isinstance(df, pd.DataFrame)
     assert len(df) <= 10  # Check limit is respected
@@ -428,21 +444,19 @@ def test_query_to_df_polars(first_model):
     # Get first available dimension and metric
     dimensions = first_model.list_dimensions()
     metrics = first_model.list_metrics()
-    
+
     if not dimensions or not metrics:
         pytest.skip("No dimensions or metrics available for testing")
-    
+
     # Get labels for verification
     dim_label = dimensions[0].label or dimensions[0].name
     metric_label = metrics[0].label or metrics[0].name
-    
+
     # Execute query and convert to DataFrame
     df = first_model.query(
-        dimensions=[dimensions[0]],
-        metrics=[metrics[0]],
-        limit=10
+        dimensions=[dimensions[0]], metrics=[metrics[0]], limit=10
     ).to_df(backend="polars")
-    
+
     # Verify DataFrame structure
     assert isinstance(df, pl.DataFrame)
     assert len(df) <= 10  # Check limit is respected
@@ -454,14 +468,110 @@ def test_query_to_df_invalid_backend(first_model):
     # Get first available dimension and metric
     dimensions = first_model.list_dimensions()
     metrics = first_model.list_metrics()
-    
+
     if not dimensions or not metrics:
         pytest.skip("No dimensions or metrics available for testing")
-    
+
     # Execute query
     with pytest.raises(ValueError, match="Unsupported DataFrame backend"):
         first_model.query(
-            dimensions=[dimensions[0]],
-            metrics=[metrics[0]],
-            limit=10
-        ).to_df(backend="invalid") 
+            dimensions=[dimensions[0]], metrics=[metrics[0]], limit=10
+        ).to_df(backend="invalid")
+
+
+def test_query_with_dimension_filter(first_model):
+    """Test that we can execute queries with a single dimension filter."""
+    from lightdash.filter import DimensionFilter
+
+    # Get first available dimension and metric
+    dimensions = first_model.list_dimensions()
+    metrics = first_model.list_metrics()
+
+    if not dimensions or not metrics:
+        pytest.skip("No dimensions or metrics available for testing")
+
+    # First run a query without filters to get some values
+    results = first_model.query(
+        dimensions=[dimensions[0]], metrics=[metrics[0]], limit=10
+    ).to_records()
+
+    if not results:
+        pytest.skip("No results available to test filters")
+
+    # Get a value from the first dimension to filter on
+    dim_label = dimensions[0].label or dimensions[0].name
+    filter_value = results[0][dim_label]
+
+    # Create a filter for the first dimension with the 'equals' operator
+    dimension_filter = DimensionFilter(
+        field=dimensions[0], operator="equals", values=[filter_value]
+    )
+
+    # Execute query with the filter
+    filtered_results = first_model.query(
+        dimensions=[dimensions[0]],
+        metrics=[metrics[0]],
+        filters=dimension_filter,
+        limit=10,
+    ).to_records()
+
+    # Verify that all results match the filter value
+    assert filtered_results, "Filter returned no results"
+    assert all(
+        row[dim_label] == filter_value for row in filtered_results
+    ), "Filter did not correctly filter results"
+
+
+def test_query_with_filters_class(first_model):
+    """Test that we can execute queries with multiple filters using the Filters class."""
+    from lightdash.filter import DimensionFilter, CompositeFilter
+
+    # Get first available dimension and metric
+    dimensions = first_model.list_dimensions()
+    metrics = first_model.list_metrics()
+
+    if not dimensions or not metrics or len(dimensions) < 2:
+        pytest.skip("Not enough dimensions available to test multiple filters")
+
+    # First run a query without filters to get some values
+    results = first_model.query(
+        dimensions=dimensions[:2],
+        metrics=[metrics[0]],
+        limit=10,  # Use first two dimensions
+    ).to_records()
+
+    if not results:
+        pytest.skip("No results available to test filters")
+
+    # Get values from the first two dimensions to filter on
+    dim1_label = dimensions[0].label or dimensions[0].name
+    dim2_label = dimensions[1].label or dimensions[1].name
+    filter1_value = results[0][dim1_label]
+    filter2_value = results[0][dim2_label]
+
+    # Create filters for both dimensions
+    filter1 = DimensionFilter(
+        field=dimensions[0], operator="equals", values=[filter1_value]
+    )
+
+    filter2 = DimensionFilter(
+        field=dimensions[1], operator="equals", values=[filter2_value]
+    )
+
+    # Create a Filters object with both filters
+    filters = CompositeFilter(filters=[filter1, filter2])
+
+    # Execute query with the filters
+    filtered_results = first_model.query(
+        dimensions=dimensions[:2],
+        metrics=[metrics[0]],
+        filters=filters,
+        limit=10,
+    ).to_records()
+
+    # Verify that all results match both filter values
+    assert filtered_results, "Filters returned no results"
+    assert all(
+        row[dim1_label] == filter1_value and row[dim2_label] == filter2_value
+        for row in filtered_results
+    ), "Filters did not correctly filter results"
