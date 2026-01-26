@@ -4,6 +4,7 @@ default:
 
 # Install development dependencies
 install:
+    uv venv --quiet || true
     uv pip install -e ".[dev]"
 
 # Run acceptance tests
@@ -36,4 +37,8 @@ publish: build
 publish-test: build
     uv pip install twine
     twine check dist/*
-    twine upload --repository testpypi --config-file ~/.pypirc dist/* 
+    twine upload --repository testpypi --config-file ~/.pypirc dist/*
+
+# Launch Jupyter notebook for interactive development
+notebook:
+    uv run jupyter notebook
