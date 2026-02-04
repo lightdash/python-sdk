@@ -4,7 +4,7 @@ version = "1.0.0"
 description = "Official SDK for Lightdash"
 readme = "README.md"
 requires-python = ">=3.9"
-license = {text = "MIT"}
+license = "MIT"
 authors = [
     {name = "Oliver Laslett", email = "oliver@lightdash.com"},
 ]
@@ -20,6 +20,9 @@ dev = [
     "pandas>=2.0.0",  # For DataFrame support in tests
     "polars>=1.22.0",  # For DataFrame support in tests
 ]
+
+[tool.setuptools.packages.find]
+include = ["lightdash*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

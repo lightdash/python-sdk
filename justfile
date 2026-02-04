@@ -25,19 +25,19 @@ clean:
 # Build package distributions
 build: clean
     uv pip install build
-    python -m build
+    uv run python -m build
 
 # Build and publish to PyPI
 publish: build
     uv pip install twine
-    twine check dist/*
-    twine upload dist/*
+    uv run twine check dist/*
+    uv run twine upload dist/*
 
 # Build and publish to TestPyPI
 publish-test: build
     uv pip install twine
-    twine check dist/*
-    twine upload --repository testpypi --config-file ~/.pypirc dist/*
+    uv run twine check dist/*
+    uv run twine upload --repository testpypi --config-file ~/.pypirc dist/*
 
 # Launch Jupyter notebook for interactive development
 notebook:
