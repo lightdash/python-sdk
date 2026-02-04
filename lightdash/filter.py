@@ -7,50 +7,49 @@ if TYPE_CHECKING:
     from lightdash.dimensions import Dimension
 
 numeric_filters = [
-    "is null",
-    "is not null",
-    "is",
+    "isNull",
+    "notNull",
     "equals",
-    "is not",
-    "is less than",
-    "is greater than",
+    "notEquals",
+    "lessThan",
+    "lessThanOrEqual",
+    "greaterThan",
+    "greaterThanOrEqual",
 ]
 
 string_filters = [
-    "is null",
-    "is not null",
-    "is",
+    "isNull",
+    "notNull",
     "equals",
-    "is not",
-    "starts with",
-    "includes",
-    "ends with",
+    "notEquals",
+    "startsWith",
+    "endsWith",
+    "include",
+    "doesNotInclude",
 ]
 
 boolean_filters = [
-    "is null",
-    "is not null",
-    "is",
+    "isNull",
+    "notNull",
     "equals",
 ]
 
 date_filters = [
-    "is null",
-    "is not null",
-    "is",
+    "isNull",
+    "notNull",
     "equals",
-    "is not",
-    "in the last",
-    "not in the last",
-    "in the next",
-    "not in the next",
-    "in the current",
-    "not in the current",
-    "is before",
-    "is on or before",
-    "is after",
-    "is on or after",
-    "is between",
+    "notEquals",
+    "inThePast",
+    "notInThePast",
+    "inTheNext",
+    "inTheCurrent",
+    "notInTheCurrent",
+    "lessThan",
+    "lessThanOrEqual",
+    "greaterThan",
+    "greaterThanOrEqual",
+    "inBetween",
+    "notInBetween",
 ]
 
 allowed_values = set(

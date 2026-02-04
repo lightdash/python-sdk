@@ -52,21 +52,21 @@ class TestDimensionComparisonOperators:
         """Test dim != 'value' creates a not equals filter."""
         result = dimension != "USA"
         assert isinstance(result, DimensionFilter)
-        assert result.operator == "is not"
+        assert result.operator == "notEquals"
         assert result.values == ["USA"]
 
     def test_greater_than_operator(self, dimension2):
         """Test dim > value creates a greater than filter."""
         result = dimension2 > 1000
         assert isinstance(result, DimensionFilter)
-        assert result.operator == "is greater than"
+        assert result.operator == "greaterThan"
         assert result.values == [1000]
 
     def test_less_than_operator(self, dimension2):
         """Test dim < value creates a less than filter."""
         result = dimension2 < 500
         assert isinstance(result, DimensionFilter)
-        assert result.operator == "is less than"
+        assert result.operator == "lessThan"
         assert result.values == [500]
 
     def test_dimension_equality_still_works(self, dimension):
@@ -101,42 +101,42 @@ class TestDimensionHelperMethods:
         """Test dim.not_in(['a', 'b']) creates not equals filter."""
         result = dimension.not_in(["USA", "UK"])
         assert isinstance(result, DimensionFilter)
-        assert result.operator == "is not"
+        assert result.operator == "notEquals"
         assert result.values == ["USA", "UK"]
 
     def test_contains_method(self, dimension):
-        """Test dim.contains('substring') creates includes filter."""
+        """Test dim.contains('substring') creates include filter."""
         result = dimension.contains("States")
         assert isinstance(result, DimensionFilter)
-        assert result.operator == "includes"
+        assert result.operator == "include"
         assert result.values == ["States"]
 
     def test_starts_with_method(self, dimension):
-        """Test dim.starts_with('prefix') creates starts with filter."""
+        """Test dim.starts_with('prefix') creates startsWith filter."""
         result = dimension.starts_with("United")
         assert isinstance(result, DimensionFilter)
-        assert result.operator == "starts with"
+        assert result.operator == "startsWith"
         assert result.values == ["United"]
 
     def test_ends_with_method(self, dimension):
-        """Test dim.ends_with('suffix') creates ends with filter."""
+        """Test dim.ends_with('suffix') creates endsWith filter."""
         result = dimension.ends_with("Kingdom")
         assert isinstance(result, DimensionFilter)
-        assert result.operator == "ends with"
+        assert result.operator == "endsWith"
         assert result.values == ["Kingdom"]
 
     def test_is_null_method(self, dimension):
-        """Test dim.is_null() creates is null filter."""
+        """Test dim.is_null() creates isNull filter."""
         result = dimension.is_null()
         assert isinstance(result, DimensionFilter)
-        assert result.operator == "is null"
+        assert result.operator == "isNull"
         assert result.values == []
 
     def test_is_not_null_method(self, dimension):
-        """Test dim.is_not_null() creates is not null filter."""
+        """Test dim.is_not_null() creates notNull filter."""
         result = dimension.is_not_null()
         assert isinstance(result, DimensionFilter)
-        assert result.operator == "is not null"
+        assert result.operator == "notNull"
         assert result.values == []
 
 
@@ -209,7 +209,7 @@ class TestBackwardsCompatibility:
     def test_composite_filter_constructor(self, dimension, dimension2):
         """Test CompositeFilter can still be created directly."""
         filter1 = DimensionFilter(field=dimension, operator="equals", values=["USA"])
-        filter2 = DimensionFilter(field=dimension2, operator="is greater than", values=[1000])
+        filter2 = DimensionFilter(field=dimension2, operator="greaterThan", values=[1000])
         composite = CompositeFilter(filters=[filter1, filter2], aggregation="and")
         assert len(composite.filters) == 2
         assert composite.aggregation == "and"

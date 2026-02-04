@@ -102,29 +102,27 @@ class Dimension:
             return not self.__eq__(other)
         from .filter import DimensionFilter
         values = other if isinstance(other, list) else [other]
-        return DimensionFilter(field=self, operator="is not", values=values)
+        return DimensionFilter(field=self, operator="notEquals", values=values)
 
     def __gt__(self, other: Any) -> "DimensionFilter":
         """Create greater than filter: dim > value"""
         from .filter import DimensionFilter
-        return DimensionFilter(field=self, operator="is greater than", values=[other])
+        return DimensionFilter(field=self, operator="greaterThan", values=[other])
 
     def __lt__(self, other: Any) -> "DimensionFilter":
         """Create less than filter: dim < value"""
         from .filter import DimensionFilter
-        return DimensionFilter(field=self, operator="is less than", values=[other])
+        return DimensionFilter(field=self, operator="lessThan", values=[other])
 
     def __ge__(self, other: Any) -> "DimensionFilter":
-        """Create >= filter: dim >= value (uses 'is greater than' with adjusted value)"""
+        """Create >= filter: dim >= value"""
         from .filter import DimensionFilter
-        # Note: Lightdash API doesn't have >= directly, this is an approximation
-        return DimensionFilter(field=self, operator="is greater than", values=[other])
+        return DimensionFilter(field=self, operator="greaterThanOrEqual", values=[other])
 
     def __le__(self, other: Any) -> "DimensionFilter":
-        """Create <= filter: dim <= value (uses 'is less than' with adjusted value)"""
+        """Create <= filter: dim <= value"""
         from .filter import DimensionFilter
-        # Note: Lightdash API doesn't have <= directly, this is an approximation
-        return DimensionFilter(field=self, operator="is less than", values=[other])
+        return DimensionFilter(field=self, operator="lessThanOrEqual", values=[other])
 
     def in_(self, values: List[Any]) -> "DimensionFilter":
         """Create 'in' filter: dim.in_(['a', 'b'])"""
@@ -134,32 +132,32 @@ class Dimension:
     def not_in(self, values: List[Any]) -> "DimensionFilter":
         """Create 'not in' filter: dim.not_in(['a', 'b'])"""
         from .filter import DimensionFilter
-        return DimensionFilter(field=self, operator="is not", values=values)
+        return DimensionFilter(field=self, operator="notEquals", values=values)
 
     def contains(self, value: str) -> "DimensionFilter":
         """Create contains filter: dim.contains('substring')"""
         from .filter import DimensionFilter
-        return DimensionFilter(field=self, operator="includes", values=[value])
+        return DimensionFilter(field=self, operator="include", values=[value])
 
     def starts_with(self, value: str) -> "DimensionFilter":
         """Create starts with filter: dim.starts_with('prefix')"""
         from .filter import DimensionFilter
-        return DimensionFilter(field=self, operator="starts with", values=[value])
+        return DimensionFilter(field=self, operator="startsWith", values=[value])
 
     def ends_with(self, value: str) -> "DimensionFilter":
         """Create ends with filter: dim.ends_with('suffix')"""
         from .filter import DimensionFilter
-        return DimensionFilter(field=self, operator="ends with", values=[value])
+        return DimensionFilter(field=self, operator="endsWith", values=[value])
 
     def is_null(self) -> "DimensionFilter":
         """Create is null filter: dim.is_null()"""
         from .filter import DimensionFilter
-        return DimensionFilter(field=self, operator="is null", values=[])
+        return DimensionFilter(field=self, operator="isNull", values=[])
 
     def is_not_null(self) -> "DimensionFilter":
         """Create is not null filter: dim.is_not_null()"""
         from .filter import DimensionFilter
-        return DimensionFilter(field=self, operator="is not null", values=[])
+        return DimensionFilter(field=self, operator="notNull", values=[])
 
 
 class Dimensions:
