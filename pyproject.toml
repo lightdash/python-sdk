@@ -1,7 +1,7 @@
 [project]
 name = "lightdash"
-version = "0.3.0"
-description = "Query metrics from Lightdash"
+version = "1.0.0"
+description = "Official SDK for Lightdash"
 readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "MIT"}

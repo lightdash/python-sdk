@@ -9,20 +9,13 @@ import logging
 from urllib.parse import urljoin
 
 from .models import Model, Models
+from .exceptions import LightdashError
+from .sql_runner import SqlRunner, SqlResult
 
 
 # Configure module logger
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
-
-
-class LightdashError(Exception):
-    """Base exception for Lightdash API errors."""
-    def __init__(self, message: str, name: str, status_code: int):
-        self.message = message
-        self.name = name
-        self.status_code = status_code
-        super().__init__(f"{name} ({status_code}): {message}")
 
 
 class Client:
@@ -177,3 +170,27 @@ class Client:
             A Model object representing the requested explore
         """
         return self.models.get(name)
+
+    @property
+    def sql_runner(self) -> SqlRunner:
+        """Access to SQL runner for raw SQL queries and table introspection."""
+        if not hasattr(self, '_sql_runner'):
+            self._sql_runner = SqlRunner(self)
+        return self._sql_runner
+
+    def sql(self, query: str, limit: int = 500) -> SqlResult:
+        """
+        Execute a raw SQL query against the data warehouse.
+
+        Args:
+            query: SQL query string
+            limit: Maximum rows to return (default 500)
+
+        Returns:
+            SqlResult object with query results
+
+        Example:
+            result = client.sql("SELECT * FROM orders LIMIT 10")
+            df = result.to_df()
+        """
+        return self.sql_runner.execute(query, limit)
