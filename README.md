@@ -10,7 +10,9 @@ pip install lightdash
 
 ## Usage
 
-See the [example notebook](examples/getting_started.ipynb) for a tutorial of how to use the client.
+See the [SDK Guide](docs/SDK_GUIDE.md) for full documentation on the query builder, filters, and other features.
+
+For an interactive tutorial, check out the [example notebook](examples/getting_started.ipynb).
 
 ```python
 from lightdash import Client

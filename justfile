@@ -15,7 +15,7 @@ test:
     else
         echo "Warning: .env file not found. Make sure environment variables are set manually."
     fi
-    pytest tests/test_acceptance.py -v
+    uv run pytest tests/test_acceptance.py -v
 
 # Clean build artifacts
 clean:

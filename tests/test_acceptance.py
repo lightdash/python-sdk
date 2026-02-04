@@ -313,19 +313,19 @@ def test_query_limit_validation(first_model):
     if not dimensions or not metrics:
         pytest.skip("No dimensions or metrics available for testing")
 
-    # Test invalid limits
-    with pytest.raises(ValueError, match="Limit must be between 1 and 5000"):
+    # Test invalid limits (V2 API supports up to 50000)
+    with pytest.raises(ValueError, match="Limit must be between 1 and 50000"):
         first_model.query(
             dimensions=[dimensions[0].field_id],
             metrics=[metrics[0].field_id],
             limit=0,
         ).to_records()
 
-    with pytest.raises(ValueError, match="Limit must be between 1 and 5000"):
+    with pytest.raises(ValueError, match="Limit must be between 1 and 50000"):
         first_model.query(
             dimensions=[dimensions[0].field_id],
             metrics=[metrics[0].field_id],
-            limit=5001,
+            limit=50001,
         ).to_records()
 
 
