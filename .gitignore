@@ -1,5 +1,6 @@
 # Environment variables
 .env
+.envrc
 
 # Python
 __pycache__/
@@ -40,3 +41,9 @@ ENV/
 
 # PyPI credentials
 .pypirc 
+
+# jupyter
+.ipynb_checkpoints
+
+# claude
+thoughts/
