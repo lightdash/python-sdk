@@ -140,6 +140,28 @@ class TestDimensionHelperMethods:
         assert result.values == []
 
 
+    def test_between_method(self, dimension):
+        """Test dim.between(start, end) creates inBetween filter."""
+        result = dimension.between("2026-01-01", "2026-01-10")
+        assert isinstance(result, DimensionFilter)
+        assert result.operator == "inBetween"
+        assert result.values == ["2026-01-01", "2026-01-10"]
+
+    def test_between_method_with_numbers(self, dimension2):
+        """Test dim.between(min, max) creates inBetween filter for numbers."""
+        result = dimension2.between(10, 100)
+        assert isinstance(result, DimensionFilter)
+        assert result.operator == "inBetween"
+        assert result.values == [10, 100]
+
+    def test_not_between_method(self, dimension):
+        """Test dim.not_between(start, end) creates notInBetween filter."""
+        result = dimension.not_between("2026-01-01", "2026-01-10")
+        assert isinstance(result, DimensionFilter)
+        assert result.operator == "notInBetween"
+        assert result.values == ["2026-01-01", "2026-01-10"]
+
+
 class TestFilterCombining:
     """Test combining filters with & and | operators."""
 
