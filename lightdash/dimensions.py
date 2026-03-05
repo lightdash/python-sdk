@@ -159,6 +159,16 @@ class Dimension:
         from .filter import DimensionFilter
         return DimensionFilter(field=self, operator="notNull", values=[])
 
+    def between(self, start: Any, end: Any) -> "DimensionFilter":
+        """Create between filter: dim.between('2026-01-01', '2026-01-10')"""
+        from .filter import DimensionFilter
+        return DimensionFilter(field=self, operator="inBetween", values=[start, end])
+
+    def not_between(self, start: Any, end: Any) -> "DimensionFilter":
+        """Create not between filter: dim.not_between('2026-01-01', '2026-01-10')"""
+        from .filter import DimensionFilter
+        return DimensionFilter(field=self, operator="notInBetween", values=[start, end])
+
 
 class Dimensions:
     """
