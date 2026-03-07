@@ -116,6 +116,10 @@ f = model.dimensions.name.includes("Smith")
 # Null checks
 f = model.dimensions.email.is_null()
 f = model.dimensions.email.is_not_null()
+
+# Range checks
+f = model.dimensions.order_date.between("2024-01-01", "2024-12-31")
+f = model.dimensions.amount.not_between(100, 500)
 ```
 
 ### Supported Operators by Data Type
@@ -136,7 +140,8 @@ f = model.dimensions.email.is_not_null()
 | `in the current` | - | - | - | Yes |
 | `is before` | - | - | - | Yes |
 | `is after` | - | - | - | Yes |
-| `is between` | - | - | - | Yes |
+| `is between` | Yes | - | - | Yes |
+| `is not between` | Yes | - | - | Yes |
 
 ### Combining Filters
 
