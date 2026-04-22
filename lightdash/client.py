@@ -33,6 +33,7 @@ class Client:
         self.instance_url = instance_url.rstrip('/')
         self.access_token = access_token
         self.project_uuid = project_uuid
+        self.auth_header = "Bearer" if access_token.startswith("ldsvc_") else "ApiKey"
         
         # Extract config values with defaults
         config = config or {}
@@ -88,7 +89,7 @@ class Client:
         
         with httpx.Client(
             headers={
-                "Authorization": f"ApiKey {self.access_token}",
+                "Authorization": f"{self.auth_header} {self.access_token}",
                 "Accept": "application/json",
             },
             timeout=self.timeout
