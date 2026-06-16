@@ -214,6 +214,56 @@ class TestFilterCombining:
         assert len(result.filters) == 3
 
 
+class TestSameFieldFilters:
+    """Test multiple filters on the same field (issue #20)."""
+
+    def test_range_filter_on_same_field(self, dimension):
+        """Test (dim >= x) & (dim <= y) serializes both rules."""
+        composite = (dimension >= "2026-01-01") & (dimension <= "2026-01-31")
+        result = composite.to_dict()
+        rules = result["dimensions"]["and"]
+        assert len(rules) == 2
+        assert rules[0]["target"]["fieldId"] == "test_model_country"
+        assert rules[0]["operator"] == "greaterThanOrEqual"
+        assert rules[0]["values"] == ["2026-01-01"]
+        assert rules[1]["target"]["fieldId"] == "test_model_country"
+        assert rules[1]["operator"] == "lessThanOrEqual"
+        assert rules[1]["values"] == ["2026-01-31"]
+
+    def test_or_filters_on_same_field(self, dimension):
+        """Test (dim == a) | (dim == b) serializes both rules."""
+        composite = (dimension == "USA") | (dimension == "UK")
+        rules = composite.to_dict()["dimensions"]["or"]
+        assert len(rules) == 2
+        assert all(r["target"]["fieldId"] == "test_model_country" for r in rules)
+
+    def test_three_filters_on_same_field(self, dimension2):
+        """Test chaining more than two filters on the same field."""
+        composite = (dimension2 > 0) & (dimension2 < 100) & (dimension2 != 50)
+        rules = composite.to_dict()["dimensions"]["and"]
+        assert len(rules) == 3
+
+    def test_same_field_via_query_filter_chain(self):
+        """Two .filter() calls on the same field are both serialized."""
+        from lightdash.models import Model
+
+        model = Model(
+            name="test_model", type="default",
+            database_name="db", schema_name="s",
+        )
+        order_date = Dimension(name="order_date", model_name="test_model")
+        query = (
+            model.query()
+            .filter(order_date >= "2026-01-01")
+            .filter(order_date <= "2026-01-31")
+        )
+        rules = query._build_payload()["filters"]["dimensions"]["and"]
+        assert len(rules) == 2
+        assert {r["operator"] for r in rules} == {
+            "greaterThanOrEqual", "lessThanOrEqual"
+        }
+
+
 class TestBackwardsCompatibility:
     """Test that original filter constructors still work."""
 

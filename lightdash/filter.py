@@ -118,17 +118,12 @@ class CompositeFilter:
 
     def to_dict(self):
         out = []
-        processed_field_ids = set()
         for f in self.filters:
             # Check that the filter is not a composite filter
             if not hasattr(f, "field"):
                 raise TypeError("Multi-level filter composites not supported yet")
-            # Check that we have at most one filter per field
-            if f.field.field_id in processed_field_ids:
-                raise NotImplementedError(
-                    f"Multiple filters for field {f.field.field_id} not implemented yet"
-                )
-            processed_field_ids.add(f.field.field_id)
+            # Multiple filters may target the same field, e.g. a date range
+            # expressed as (dim >= start) & (dim <= end).
             out.append(f.to_dict())
         return {"dimensions": {self.aggregation: out}}
 
