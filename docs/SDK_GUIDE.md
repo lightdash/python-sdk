@@ -193,6 +193,39 @@ query = (
 )
 ```
 
+### Filtering on Table Calculations
+
+Define a table calculation, add it to the query, then filter on it with the same
+operators you use for dimensions. Table-calculation conditions are sent under
+`filters.tableCalculations`:
+
+```python
+from lightdash import TableCalculation
+
+profit_ratio = TableCalculation(
+    name="profit_ratio",
+    sql="${orders.profit} / ${orders.revenue}",
+)
+
+query = (
+    model.query()
+    .metrics(model.metrics.revenue, model.metrics.profit)
+    .table_calculations(profit_ratio)
+    .filter(profit_ratio > 0.2)  # only rows where the ratio exceeds 20%
+)
+```
+
+Dimension and table-calculation filters can be combined freely; each is
+serialized under its own key:
+
+```python
+query = (
+    model.query()
+    .table_calculations(profit_ratio)
+    .filter((model.dimensions.country == "USA") & (profit_ratio > 0.2))
+)
+```
+
 ---
 
 ## Dimensions and Metrics
