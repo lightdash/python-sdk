@@ -277,6 +277,28 @@ for row in result:
 total = len(result)
 ```
 
+### Large Result Sets
+
+There is no fixed SDK row cap. A query can return as many rows as the instance
+allows — its configured `query.maxLimit` (discovered automatically from
+`/api/v1/health`; e.g. 100,000 on Lightdash Cloud). Request more than that and
+the SDK raises a clear `ValueError` instead of letting the server silently
+return a truncated result:
+
+```python
+# Fetch a large extract — pages are streamed transparently
+result = model.query().metrics(model.metrics.revenue).limit(100_000).execute()
+df = result.to_df()
+
+# Asking for more than the instance allows fails loudly
+model.query().limit(10_000_000).execute()
+# ValueError: Limit 10000000 exceeds this instance's maximum query limit of 100000...
+```
+
+Large fetches page at the instance's `maxPageSize` to minimise round-trips, and
+every page uses the same size so no rows are skipped. To pull result sets larger
+than `query.maxLimit`, use a CSV/Excel export instead.
+
 ### Pagination
 
 For large result sets, results are paginated automatically:

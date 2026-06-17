@@ -24,7 +24,8 @@ class _QueryExecutor:
         self,
         query_payload: Dict[str, Any],
         timeout_seconds: float = 300,
-        invalidate_cache: bool = False
+        invalidate_cache: bool = False,
+        page_size: int = 500
     ) -> "QueryResult":
         """Submit query via V2 API and poll until complete."""
         # Step 1: Submit query
@@ -40,14 +41,16 @@ class _QueryExecutor:
         query_uuid = submit_response["queryUuid"]
         fields = submit_response.get("fields", {})
 
-        # Step 2: Poll for first page
-        first_page = self._poll_until_ready(query_uuid, timeout_seconds)
+        # Step 2: Poll for first page. The same page_size is reused for every
+        # page so totalPageCount and page numbering stay consistent.
+        first_page = self._poll_until_ready(query_uuid, timeout_seconds, page_size=page_size)
 
         return QueryResult(
             query_uuid=query_uuid,
             fields=fields,
             first_page=first_page,
-            executor=self
+            executor=self,
+            page_size=page_size
         )
 
     def _poll_until_ready(
@@ -127,12 +130,14 @@ class QueryResult(BaseResult):
         query_uuid: str,
         fields: Dict[str, Any],
         first_page: Dict[str, Any],
-        executor: _QueryExecutor
+        executor: _QueryExecutor,
+        page_size: int = 500
     ):
         self._query_uuid = query_uuid
         self._fields = fields
         self._first_page = first_page
         self._executor = executor
+        self._page_size = page_size
         self._all_rows: Optional[List[Dict[str, Any]]] = None
         self._field_labels = self._build_field_labels()
 
@@ -179,39 +184,51 @@ class QueryResult(BaseResult):
         """Field metadata from the query."""
         return self._fields
 
-    def page(self, page_num: int, page_size: int = 500) -> List[Dict[str, Any]]:
+    def page(self, page_num: int, page_size: Optional[int] = None) -> List[Dict[str, Any]]:
         """
         Get a specific page of results.
 
         Args:
             page_num: Page number (1-indexed)
-            page_size: Number of rows per page (max 5000)
+            page_size: Rows per page. Defaults to the size the query was
+                fetched with (bounded by the instance's ``maxPageSize``).
 
         Returns:
             List of row dictionaries for the requested page
         """
-        if page_num == 1 and page_size == self._first_page.get("pageSize", 500):
+        ps = page_size or self._page_size
+        if page_num == 1 and ps == self._first_page.get("pageSize", self._page_size):
             return self._transform_rows(self._first_page.get("rows", []))
 
-        page_data = self._executor.get_page(self._query_uuid, page_num, page_size)
+        page_data = self._executor.get_page(self._query_uuid, page_num, ps)
         return self._transform_rows(page_data.get("rows", []))
 
-    def iter_pages(self, page_size: int = 500) -> Iterator[List[Dict[str, Any]]]:
+    def iter_pages(self, page_size: Optional[int] = None) -> Iterator[List[Dict[str, Any]]]:
         """
         Iterate through all pages of results.
 
         Args:
-            page_size: Number of rows per page
+            page_size: Rows per page. Defaults to the size the query was
+                fetched with. The page count is derived from this size and
+                ``total_results`` so every row is yielded exactly once.
 
         Yields:
             List of row dictionaries for each page
         """
-        # Yield first page
-        yield self._transform_rows(self._first_page.get("rows", []))
+        ps = page_size or self._page_size
 
-        # Fetch and yield remaining pages
-        for page_num in range(2, self.total_pages + 1):
-            page_data = self._executor.get_page(self._query_uuid, page_num, page_size)
+        # Reuse the already-fetched first page only when its size matches the
+        # requested page size; otherwise re-fetch from page 1 at the new size.
+        if ps == self._first_page.get("pageSize", self._page_size):
+            yield self._transform_rows(self._first_page.get("rows", []))
+            start_page = 2
+        else:
+            start_page = 1
+
+        total = self.total_results
+        num_pages = (total + ps - 1) // ps if total else 1
+        for page_num in range(start_page, num_pages + 1):
+            page_data = self._executor.get_page(self._query_uuid, page_num, ps)
             yield self._transform_rows(page_data.get("rows", []))
 
     def to_records(self) -> List[Dict[str, Any]]:
@@ -514,7 +531,10 @@ class Query:
         Returns a new Query with the specified limit.
 
         Args:
-            n: Maximum number of rows to return (1-50000)
+            n: Maximum number of rows to return. The upper bound is the
+                instance's configured ``query.maxLimit`` (discovered at execute
+                time), not a fixed SDK cap. Requesting more raises a ValueError
+                rather than silently returning a truncated result.
 
         Returns:
             A new Query with the limit set
@@ -606,19 +626,43 @@ class Query:
         if self._result is not None and not invalidate_cache:
             return self._result
 
-        if not 1 <= self._limit <= 50000:
-            raise ValueError("Limit must be between 1 and 50000")
+        if self._limit < 1:
+            raise ValueError("Limit must be at least 1")
 
         if self._model._client is None:
             raise RuntimeError("Model not properly initialized with client reference")
 
-        executor = _QueryExecutor(self._model._client)
+        client = self._model._client
+
+        # Discover the instance's real limits rather than hard-coding a cap.
+        # Fail open if /health is unreachable - the server still enforces them.
+        try:
+            limits = client.get_query_limits()
+        except Exception:
+            limits = {}
+
+        max_limit = limits.get("maxLimit")
+        if max_limit and self._limit > max_limit:
+            # Raise rather than let the server silently clamp and return a
+            # truncated result that looks complete.
+            raise ValueError(
+                f"Limit {self._limit} exceeds this instance's maximum query limit "
+                f"of {max_limit}. Lower the limit, or export larger result sets via CSV."
+            )
+
+        # Page through results at the largest size the instance allows (bounded
+        # by the requested limit) to minimise round-trips on large extracts.
+        max_page_size = limits.get("maxPageSize") or 500
+        page_size = max(1, min(max_page_size, self._limit))
+
+        executor = _QueryExecutor(client)
         payload = self._build_payload()
 
         self._result = executor.execute(
             payload,
             timeout_seconds=timeout_seconds,
-            invalidate_cache=invalidate_cache
+            invalidate_cache=invalidate_cache,
+            page_size=page_size
         )
         return self._result
 
