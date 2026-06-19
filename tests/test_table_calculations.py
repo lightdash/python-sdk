@@ -53,17 +53,28 @@ class TestTableCalculation:
         assert calc.field_id == "profit_ratio"
 
     def test_to_dict_matches_sql_table_calculation(self, calc):
-        """Serialization matches the SqlTableCalculation shape {name, displayName, sql}."""
+        """Serialization matches the SqlTableCalculation shape {name, displayName, sql, type}."""
         assert calc.to_dict() == {
             "name": "profit_ratio",
             "displayName": "Profit Ratio",
             "sql": "${test_model.profit} / ${test_model.revenue}",
+            "type": "number",
         }
 
     def test_to_dict_display_name_defaults_to_name(self):
         """displayName falls back to name when not provided."""
         calc = TableCalculation(name="my_calc", sql="1 + 1")
         assert calc.to_dict()["displayName"] == "my_calc"
+
+    def test_type_defaults_to_number(self, calc):
+        """type defaults to number so comparison filters compile server-side."""
+        assert calc.type == "number"
+        assert calc.to_dict()["type"] == "number"
+
+    def test_type_can_be_overridden(self):
+        """Non-numeric calculations can declare their type."""
+        calc = TableCalculation(name="label", sql="'x'", type="string")
+        assert calc.to_dict()["type"] == "string"
 
     def test_equality_between_calculations(self, calc):
         """Comparing two TableCalculations returns bool, not a filter."""

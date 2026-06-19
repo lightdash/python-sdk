@@ -226,6 +226,12 @@ query = (
 )
 ```
 
+> **Note on `type`:** `TableCalculation` defaults `type="number"`. The data
+> type must be set for filter operators to compile — an untyped calculation is
+> treated as a string by the API and rejects numeric operators like `>` or
+> `between`. For a non-numeric calculation, pass `type="string"` (or `date`,
+> `timestamp`, `boolean`).
+
 ---
 
 ## Dimensions and Metrics

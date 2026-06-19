@@ -2,9 +2,9 @@
 Table calculations for Lightdash queries.
 
 A ``TableCalculation`` is a row-by-row expression evaluated on query results.
-It serializes as a ``SqlTableCalculation`` (``{name, displayName, sql}``) in the
-query payload, and can be referenced in filters via the comparison operators
-below, mirroring the ``Dimension`` filter API.
+It serializes as a ``SqlTableCalculation`` (``{name, displayName, sql, type}``)
+in the query payload, and can be referenced in filters via the comparison
+operators below, mirroring the ``Dimension`` filter API.
 """
 from __future__ import annotations
 
@@ -17,14 +17,23 @@ if TYPE_CHECKING:
 
 @dataclass
 class TableCalculation:
-    """A Lightdash table calculation defined by a SQL expression."""
+    """A Lightdash table calculation defined by a SQL expression.
+
+    ``type`` is the result data type (``number``, ``string``, ``date``,
+    ``timestamp`` or ``boolean``). It defaults to ``number`` because filtering
+    is the common reason to reference a calculation, and numeric/comparison
+    operators only compile when the calc is typed - an untyped calc is treated
+    as ``string`` by the API and rejects ``>``, ``between``, etc. Set it
+    explicitly for non-numeric calculations.
+    """
     name: str
     sql: str
     display_name: Optional[str] = None
+    type: str = "number"
 
     def __hash__(self) -> int:
         """Make TableCalculation hashable for use in sets and dict keys."""
-        return hash((self.name, self.sql, self.display_name))
+        return hash((self.name, self.sql, self.display_name, self.type))
 
     def __str__(self) -> str:
         return f"TableCalculation({self.name})"
@@ -46,6 +55,7 @@ class TableCalculation:
             "name": self.name,
             "displayName": self.display_name or self.name,
             "sql": self.sql,
+            "type": self.type,
         }
 
     # -------------------------------------------------------------------------
@@ -60,6 +70,7 @@ class TableCalculation:
                 self.name == other.name
                 and self.sql == other.sql
                 and self.display_name == other.display_name
+                and self.type == other.type
             )
         from .filter import TableCalculationFilter
         values = other if isinstance(other, list) else [other]
