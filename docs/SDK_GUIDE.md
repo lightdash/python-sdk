@@ -171,6 +171,28 @@ query = (
 )
 ```
 
+### Multiple Filters on the Same Field
+
+You can apply more than one condition to the same field—for example, to constrain
+a date dimension to a range:
+
+```python
+query = model.query().filter(
+    (model.dimensions.order_date >= "2026-01-01") &
+    (model.dimensions.order_date <= "2026-01-31")
+)
+```
+
+The same works across separate `.filter()` calls, since they are AND-ed together:
+
+```python
+query = (
+    model.query()
+    .filter(model.dimensions.order_date >= "2026-01-01")
+    .filter(model.dimensions.order_date <= "2026-01-31")
+)
+```
+
 ---
 
 ## Dimensions and Metrics
