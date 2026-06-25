@@ -215,7 +215,7 @@ query = (
 )
 ```
 
-Dimension and table-calculation filters can be combined freely; each is
+Dimension and table-calculation filters can be combined with `&` (AND); each is
 serialized under its own key:
 
 ```python
@@ -231,6 +231,14 @@ query = (
 > treated as a string by the API and rejects numeric operators like `>` or
 > `between`. For a non-numeric calculation, pass `type="string"` (or `date`,
 > `timestamp`, `boolean`).
+
+> **Limitation — `|` (OR) across field types:** Lightdash sends dimension,
+> metric, and table-calculation filters as **separate groups that are AND-ed
+> together** at the top level. An OR that mixes field types — e.g.
+> `(model.dimensions.country == "USA") | (profit_ratio > 0.2)` — therefore
+> cannot be expressed faithfully: it serializes as two independent groups that
+> the server combines with AND, not OR. OR works as expected *within* a single
+> field type (e.g. `(profit_ratio > 0.8) | (profit_ratio < 0.2)`).
 
 ---
 
