@@ -193,6 +193,53 @@ query = (
 )
 ```
 
+### Filtering on Table Calculations
+
+Define a table calculation, add it to the query, then filter on it with the same
+operators you use for dimensions. Table-calculation conditions are sent under
+`filters.tableCalculations`:
+
+```python
+from lightdash import TableCalculation
+
+profit_ratio = TableCalculation(
+    name="profit_ratio",
+    sql="${orders.profit} / ${orders.revenue}",
+)
+
+query = (
+    model.query()
+    .metrics(model.metrics.revenue, model.metrics.profit)
+    .table_calculations(profit_ratio)
+    .filter(profit_ratio > 0.2)  # only rows where the ratio exceeds 20%
+)
+```
+
+Dimension and table-calculation filters can be combined with `&` (AND); each is
+serialized under its own key:
+
+```python
+query = (
+    model.query()
+    .table_calculations(profit_ratio)
+    .filter((model.dimensions.country == "USA") & (profit_ratio > 0.2))
+)
+```
+
+> **Note on `type`:** `TableCalculation` defaults `type="number"`. The data
+> type must be set for filter operators to compile — an untyped calculation is
+> treated as a string by the API and rejects numeric operators like `>` or
+> `between`. For a non-numeric calculation, pass `type="string"` (or `date`,
+> `timestamp`, `boolean`).
+
+> **Limitation — `|` (OR) across field types:** Lightdash sends dimension,
+> metric, and table-calculation filters as **separate groups that are AND-ed
+> together** at the top level. An OR that mixes field types — e.g.
+> `(model.dimensions.country == "USA") | (profit_ratio > 0.2)` — therefore
+> cannot be expressed faithfully: it serializes as two independent groups that
+> the server combines with AND, not OR. OR works as expected *within* a single
+> field type (e.g. `(profit_ratio > 0.8) | (profit_ratio < 0.2)`).
+
 ---
 
 ## Dimensions and Metrics

@@ -347,6 +347,59 @@ def test_query_requires_client(client_params):
         ).to_records()
 
 
+def test_query_table_calculation_filter(client):
+    """E2E: a filter on a table calculation is applied server-side (#21)."""
+    from lightdash import TableCalculation
+
+    # Find a model that has at least one metric and one dimension.
+    model = metric = dim = None
+    for m in client.list_models():
+        metrics = m.list_metrics()
+        dims = m.list_dimensions()
+        if metrics and dims:
+            model, metric, dim = m, metrics[0], dims[0]
+            break
+    if model is None:
+        pytest.skip("No model with both a metric and a dimension available")
+
+    # A calc that simply copies the metric, so we can predict filter results.
+    calc = TableCalculation(
+        name="calc_copy",
+        sql="${%s.%s}" % (metric.model_name, metric.name),
+    )
+
+    base = model.query(
+        dimensions=[dim.field_id],
+        metrics=[metric.field_id],
+        table_calculations=[calc],
+        limit=200,
+    ).execute().to_records()
+
+    values = sorted(
+        r["calc_copy"] for r in base
+        if isinstance(r.get("calc_copy"), (int, float))
+    )
+    if len(values) < 3:
+        pytest.skip("Not enough numeric rows to exercise a table-calc filter")
+
+    threshold = values[len(values) // 2]  # median
+    expected = sum(1 for v in values if v > threshold)
+
+    filtered = (
+        model.query()
+        .dimensions(dim.field_id)
+        .metrics(metric.field_id)
+        .table_calculations(calc)
+        .filter(calc > threshold)
+        .limit(200)
+    ).execute().to_records()
+
+    # Every returned row satisfies the predicate, and the count matches the
+    # client-side expectation - proving the filter ran server-side.
+    assert all(r["calc_copy"] > threshold for r in filtered)
+    assert len(filtered) == expected
+
+
 def test_metric_field_id():
     """Test that metrics generate correct field IDs."""
     metric = Metric(

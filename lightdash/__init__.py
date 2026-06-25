@@ -12,7 +12,8 @@ from lightdash.exceptions import (
 )
 from lightdash.query import QueryResult
 from lightdash.sorting import Sort
-from lightdash.filter import DimensionFilter, CompositeFilter
+from lightdash.filter import DimensionFilter, TableCalculationFilter, CompositeFilter
+from lightdash.table_calculations import TableCalculation
 from lightdash.sql_runner import SqlResult
 from lightdash.results import ResultSet, BaseResult
 
@@ -25,7 +26,9 @@ __all__ = [
     'QueryResult',
     'Sort',
     'DimensionFilter',
+    'TableCalculationFilter',
     'CompositeFilter',
+    'TableCalculation',
     'SqlResult',
     'ResultSet',
     'BaseResult',

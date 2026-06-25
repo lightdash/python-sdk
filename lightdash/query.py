@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional, Union, Sequence, Iterator
 
 from .dimensions import Dimension
 from .metrics import Metric
-from .filter import DimensionFilter, CompositeFilter
+from .filter import DimensionFilter, TableCalculationFilter, CompositeFilter
 from .sorting import Sort
 from .types import Model
 from .exceptions import QueryError, QueryTimeout, QueryCancelled
@@ -376,10 +376,10 @@ class Query:
         self._dimensions = tuple(dimensions) if dimensions else ()
         self._limit = limit
 
-        # Handle filters - normalize to CompositeFilter if DimensionFilter is passed
+        # Handle filters - normalize to CompositeFilter if a single filter is passed
         if filters is None:
             self._filters = None
-        elif isinstance(filters, DimensionFilter):
+        elif isinstance(filters, (DimensionFilter, TableCalculationFilter)):
             self._filters = CompositeFilter(filters=[filters])
         else:
             self._filters = filters
@@ -448,7 +448,34 @@ class Query:
         """
         return self._clone(dimensions=self._dimensions + dimensions)
 
-    def filter(self, filter: Union[DimensionFilter, CompositeFilter]) -> "Query":
+    def table_calculations(self, *table_calculations: Any) -> "Query":
+        """
+        Add table calculations to the query.
+
+        Returns a new Query with the specified table calculations added.
+
+        Args:
+            *table_calculations: TableCalculation objects or raw dicts to add
+
+        Returns:
+            A new Query with the table calculations added
+
+        Example:
+            profit_ratio = TableCalculation(
+                name="profit_ratio",
+                sql="${orders.profit} / ${orders.revenue}",
+            )
+            query = (
+                model.query()
+                .metrics(model.metrics.revenue, model.metrics.profit)
+                .table_calculations(profit_ratio)
+                .filter(profit_ratio > 0.2)
+            )
+        """
+        existing = tuple(self._table_calculations) if self._table_calculations else ()
+        return self._clone(table_calculations=existing + table_calculations)
+
+    def filter(self, filter: Union[DimensionFilter, TableCalculationFilter, CompositeFilter]) -> "Query":
         """
         Add a filter to the query.
 
@@ -456,7 +483,7 @@ class Query:
         Returns a new Query with the filter added.
 
         Args:
-            filter: A DimensionFilter or CompositeFilter to apply
+            filter: A DimensionFilter, TableCalculationFilter or CompositeFilter to apply
 
         Returns:
             A new Query with the filter added
@@ -470,13 +497,13 @@ class Query:
         """
         if self._filters is None:
             # First filter
-            if isinstance(filter, DimensionFilter):
+            if isinstance(filter, (DimensionFilter, TableCalculationFilter)):
                 new_filters = CompositeFilter(filters=[filter])
             else:
                 new_filters = filter
         else:
             # Combine with existing filters using AND
-            if isinstance(filter, DimensionFilter):
+            if isinstance(filter, (DimensionFilter, TableCalculationFilter)):
                 # Add to existing CompositeFilter's list
                 new_filters = CompositeFilter(
                     filters=list(self._filters.filters) + [filter],

@@ -128,6 +128,7 @@ class Model:
         filters: Optional[Union[DimensionFilter, CompositeFilter]] = None,
         sort: Optional[Union[Sort, Sequence[Sort]]] = None,
         limit: int = 500,
+        table_calculations: Optional[Sequence[Any]] = None,
     ) -> Query:
         """
         Create a query against this model.
@@ -143,6 +144,8 @@ class Model:
             filters: Optional filters to apply to the query.
             sort: Optional Sort object or sequence of Sort objects to order results.
             limit: Maximum number of rows to return.
+            table_calculations: Optional sequence of TableCalculation objects or
+                raw dicts to include in the query.
 
         Returns:
             A Query object that can be used to fetch results or build further.
@@ -186,6 +189,7 @@ class Model:
             filters=filters,
             sort=sort_seq,
             limit=limit,
+            table_calculations=table_calculations,
         )
 
     def list_metrics(self) -> List["Metric"]:
