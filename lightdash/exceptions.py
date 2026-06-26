@@ -10,6 +10,26 @@ class LightdashError(Exception):
         super().__init__(f"{name} ({status_code}): {message}")
 
 
+class LightdashConnectionError(LightdashError):
+    """Raised when the SDK cannot reach the Lightdash instance.
+
+    Covers DNS failures, refused connections, and timeouts — typically an
+    incorrect ``instance_url`` or an instance that is down or unreachable.
+    """
+    def __init__(self, message: str):
+        super().__init__(message, "LightdashConnectionError", 0)
+
+
+class LightdashAuthError(LightdashError):
+    """Raised when authentication fails (HTTP 401/403).
+
+    Typically an invalid or expired ``access_token``, or a token without
+    access to the requested project.
+    """
+    def __init__(self, message: str, status_code: int = 401):
+        super().__init__(message, "LightdashAuthError", status_code)
+
+
 class QueryError(LightdashError):
     """Raised when a query fails."""
     def __init__(self, message: str, query_uuid: str = None):
