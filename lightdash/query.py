@@ -511,27 +511,21 @@ class Query:
                 .filter(model.dimensions.country == 'USA')
                 .filter(model.dimensions.status == 'active')
             )
+
+        Each call AND-s the new condition with everything added so far, even
+        when an earlier filter is an OR group — so
+        ``.filter(a | b).filter(c)`` means ``(a OR b) AND c``.
         """
         if self._filters is None:
-            # First filter
-            if isinstance(filter, (DimensionFilter, TableCalculationFilter)):
-                new_filters = CompositeFilter(filters=[filter])
-            else:
+            # First filter — a bare rule becomes a single-item group.
+            if isinstance(filter, CompositeFilter):
                 new_filters = filter
-        else:
-            # Combine with existing filters using AND
-            if isinstance(filter, (DimensionFilter, TableCalculationFilter)):
-                # Add to existing CompositeFilter's list
-                new_filters = CompositeFilter(
-                    filters=list(self._filters.filters) + [filter],
-                    aggregation=self._filters.aggregation
-                )
             else:
-                # Both are CompositeFilters - combine them
-                new_filters = CompositeFilter(
-                    filters=list(self._filters.filters) + list(filter.filters),
-                    aggregation="and"
-                )
+                new_filters = CompositeFilter(filters=[filter])
+        else:
+            # AND the new condition with everything so far. _combine keeps any
+            # existing OR group nested rather than absorbing the new rule into it.
+            new_filters = self._filters & filter
         return self._clone(filters=new_filters)
 
     def sort(self, *sorts: Sort) -> "Query":

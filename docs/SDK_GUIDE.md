@@ -154,22 +154,33 @@ f = (model.dimensions.country == "USA") & (model.dimensions.amount > 1000)
 # OR: Either condition must be true
 f = (model.dimensions.status == "active") | (model.dimensions.status == "pending")
 
-# Complex combinations
+# Complex combinations — nesting and precedence are preserved
 f = (
     (model.dimensions.country == "USA") &
     ((model.dimensions.amount > 1000) | (model.dimensions.priority == "high"))
 )
+# serializes as: country = USA AND (amount > 1000 OR priority = high)
 ```
 
-Multiple `.filter()` calls on a query are combined with AND logic:
+The boolean structure you write is the boolean structure that runs:
+`a & (b | c)` keeps the `(b | c)` group nested rather than flattening to
+`a & b & c`.
+
+Multiple `.filter()` calls on a query are combined with AND logic — each call
+AND-s the new condition with everything so far, **as a unit**:
 
 ```python
 query = (
     model.query()
-    .filter(model.dimensions.country == "USA")
-    .filter(model.dimensions.amount > 1000)  # AND-ed with above
+    .filter((model.dimensions.status == "active") | (model.dimensions.status == "pending"))
+    .filter(model.dimensions.status != "deleted")
 )
+# (status = active OR status = pending) AND status != deleted
 ```
+
+> **Note:** dimension and table-calculation filters live in separate groups that
+> the API always ANDs together, so they can be combined with `&` but **not** OR-ed
+> with each other (`(dimension == x) | (calc > y)` raises a clear error).
 
 ### Multiple Filters on the Same Field
 
