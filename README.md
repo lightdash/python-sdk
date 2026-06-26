@@ -24,6 +24,10 @@ client = Client(
 )
 ```
 
+`access_token` accepts both personal access tokens (`ldpat_…`) and service
+account tokens (`ldsvc_…`); the SDK selects the correct authentication scheme
+automatically.
+
 ## Development
 
 ### Prerequisites
