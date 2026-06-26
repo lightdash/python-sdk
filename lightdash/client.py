@@ -141,6 +141,24 @@ class Client:
                 
             return data["results"]
 
+    def get_query_limits(self) -> Dict[str, Any]:
+        """
+        Return this instance's query limit configuration, cached after the
+        first call.
+
+        Reads ``query`` from ``/api/v1/health`` — notably ``maxLimit`` (the
+        maximum number of rows a query may return) and ``maxPageSize`` (the
+        largest page the results API will serve). These are instance/org
+        configurable, so the SDK discovers them rather than hard-coding a cap.
+
+        Returns:
+            The ``query`` config dict (empty dict if unavailable).
+        """
+        if not hasattr(self, "_query_limits"):
+            health = self._make_request("GET", "/api/v1/health")
+            self._query_limits = health.get("query", {}) or {}
+        return self._query_limits
+
     def _fetch_models(self) -> List[Model]:
         """Internal method to fetch models from API."""
         path = f"/api/v1/projects/{self.project_uuid}/explores"

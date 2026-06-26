@@ -305,28 +305,43 @@ def test_query_with_field_ids(first_model):
         assert metric_label in row
 
 
-def test_query_limit_validation(first_model):
-    """Test that query limits are properly validated."""
-    dimensions = first_model.list_dimensions()
-    metrics = first_model.list_metrics()
+def test_query_limit_validation(client):
+    """Test that query limits are properly validated (issue #19)."""
+    # Find a model with at least one dimension and metric so the query paths
+    # below actually execute (models[0] may be a fieldless staging model).
+    model = dim = metric = None
+    for m in client.list_models():
+        dims = m.list_dimensions()
+        mets = m.list_metrics()
+        if dims and mets:
+            model, dim, metric = m, dims[0], mets[0]
+            break
+    if model is None:
+        pytest.skip("No model with a dimension and metric available")
 
-    if not dimensions or not metrics:
-        pytest.skip("No dimensions or metrics available for testing")
-
-    # Test invalid limits (V2 API supports up to 50000)
-    with pytest.raises(ValueError, match="Limit must be between 1 and 50000"):
-        first_model.query(
-            dimensions=[dimensions[0].field_id],
-            metrics=[metrics[0].field_id],
-            limit=0,
+    # A limit below 1 is rejected locally
+    with pytest.raises(ValueError, match="Limit must be at least 1"):
+        model.query(
+            dimensions=[dim.field_id], metrics=[metric.field_id], limit=0,
         ).to_records()
 
-    with pytest.raises(ValueError, match="Limit must be between 1 and 50000"):
-        first_model.query(
-            dimensions=[dimensions[0].field_id],
-            metrics=[metrics[0].field_id],
-            limit=50001,
-        ).to_records()
+    # A limit above the instance's configured maxLimit is rejected with a clear
+    # error rather than silently truncated.
+    max_limit = client.get_query_limits().get("maxLimit")
+    if max_limit:
+        with pytest.raises(ValueError, match="exceeds this instance's maximum"):
+            model.query(
+                dimensions=[dim.field_id], metrics=[metric.field_id],
+                limit=max_limit + 1,
+            ).to_records()
+
+    # A limit above the old hard-coded 50k cap (but within maxLimit) is now
+    # accepted. execute() only fetches the first page, so this stays cheap.
+    if max_limit and max_limit > 50000:
+        result = model.query(
+            dimensions=[dim.field_id], metrics=[metric.field_id], limit=50001,
+        ).execute()
+        assert result is not None
 
 
 def test_query_requires_client(client_params):

@@ -18,6 +18,8 @@ class Client(Protocol):
         json: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]: ...
 
+    def get_query_limits(self) -> Dict[str, Any]: ...
+
 
 class Model(Protocol):
     """Type protocol for a Lightdash model."""
