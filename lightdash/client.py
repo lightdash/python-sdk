@@ -9,7 +9,11 @@ import logging
 from urllib.parse import urljoin
 
 from .models import Model, Models
-from .exceptions import LightdashError
+from .exceptions import (
+    LightdashError,
+    LightdashConnectionError,
+    LightdashAuthError,
+)
 from .sql_runner import SqlRunner, SqlResult
 
 
@@ -94,15 +98,39 @@ class Client:
             },
             timeout=self.timeout
         ) as client:
-            response = client.request(
-                method=method,
-                url=url,
-                params=params,
-                json=json,
-            )
-            
+            try:
+                response = client.request(
+                    method=method,
+                    url=url,
+                    params=params,
+                    json=json,
+                )
+            except httpx.TimeoutException as e:
+                raise LightdashConnectionError(
+                    f"Request to {self.instance_url} timed out after {self.timeout}s. "
+                    "The instance may be unreachable or overloaded."
+                ) from e
+            except httpx.ConnectError as e:
+                raise LightdashConnectionError(
+                    f"Could not connect to Lightdash at {self.instance_url}. "
+                    "Check that instance_url is correct and the instance is reachable."
+                ) from e
+            except httpx.RequestError as e:
+                raise LightdashConnectionError(
+                    f"Network error connecting to Lightdash at {self.instance_url}: {e}"
+                ) from e
+
             self._log_response(response)
-            
+
+            # Authentication failures get a dedicated, actionable message.
+            if response.status_code in (401, 403):
+                raise LightdashAuthError(
+                    f"Authentication failed (HTTP {response.status_code}) for "
+                    f"{self.instance_url}. Check that your access_token is valid and "
+                    "has access to this project.",
+                    status_code=response.status_code,
+                )
+
             # Raise HTTP errors
             try:
                 response.raise_for_status()

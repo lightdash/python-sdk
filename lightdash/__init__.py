@@ -6,6 +6,8 @@ A Python client for interacting with the Lightdash API.
 from lightdash.client import Client
 from lightdash.exceptions import (
     LightdashError,
+    LightdashConnectionError,
+    LightdashAuthError,
     QueryError,
     QueryTimeout,
     QueryCancelled,
@@ -20,6 +22,8 @@ from lightdash.results import ResultSet, BaseResult
 __all__ = [
     'Client',
     'LightdashError',
+    'LightdashConnectionError',
+    'LightdashAuthError',
     'QueryError',
     'QueryTimeout',
     'QueryCancelled',
