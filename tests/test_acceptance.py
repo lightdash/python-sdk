@@ -643,3 +643,30 @@ def test_query_with_filters_class(first_model):
         row[dim1_label] == filter1_value and row[dim2_label] == filter2_value
         for row in filtered_results
     ), "Filters did not correctly filter results"
+
+
+def test_compile_query(first_model):
+    """Compiling a query returns warehouse SQL without executing it."""
+    dimensions = first_model.list_dimensions()
+    metrics = first_model.list_metrics()
+    if not dimensions or not metrics:
+        pytest.skip("No dimensions or metrics available for testing")
+
+    # Plain compile -> SELECT ... FROM ...
+    sql = first_model.query(
+        dimensions=[dimensions[0].field_id],
+        metrics=[metrics[0].field_id],
+        limit=10,
+    ).compile()
+    assert isinstance(sql, str)
+    assert "select" in sql.lower()
+    assert "from" in sql.lower()
+
+    # With a filter -> exercises filter-id injection on the v1 endpoint
+    sql_filtered = first_model.query(
+        dimensions=[dimensions[0].field_id],
+        metrics=[metrics[0].field_id],
+        filters=dimensions[0].is_not_null(),
+        limit=10,
+    ).compile()
+    assert "where" in sql_filtered.lower()

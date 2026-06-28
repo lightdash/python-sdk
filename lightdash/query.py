@@ -1,5 +1,6 @@
 """Query functionality for Lightdash models."""
 import time
+import uuid
 import warnings
 from typing import Any, Dict, List, Optional, Union, Sequence, Iterator
 
@@ -10,6 +11,28 @@ from .sorting import Sort
 from .types import Model
 from .exceptions import QueryError, QueryTimeout, QueryCancelled
 from .results import BaseResult
+
+
+def _inject_filter_ids(filters: Dict[str, Any]) -> Dict[str, Any]:
+    """Add the ``id`` fields the v1 ``compileQuery`` endpoint requires on every
+    filter group and rule.
+
+    The v2 query endpoint injects these server-side, but v1 validates them
+    strictly. Returns a new dict; the input is not mutated.
+    """
+    def visit_group(group: Dict[str, Any]) -> Dict[str, Any]:
+        out: Dict[str, Any] = {"id": str(uuid.uuid4())}
+        for key in ("and", "or"):
+            if key in group:
+                out[key] = [visit_item(item) for item in group[key]]
+        return out
+
+    def visit_item(item: Dict[str, Any]) -> Dict[str, Any]:
+        if "and" in item or "or" in item:  # nested group
+            return visit_group(item)
+        return {**item, "id": str(uuid.uuid4())}  # leaf rule
+
+    return {ftype: visit_group(group) for ftype, group in filters.items()}
 
 
 class _QueryExecutor:
@@ -692,6 +715,54 @@ class Query:
             page_size=page_size
         )
         return self._result
+
+    def compile(self) -> str:
+        """
+        Compile the query to warehouse SQL without executing it.
+
+        Returns the SQL Lightdash would run for this query. Nothing is executed
+        and no rows are fetched — useful for inspecting or debugging a query, or
+        for running it directly against your warehouse (e.g. BigQuery/bigframes,
+        dbt, or a data pipeline) when you need more rows than the query API
+        returns.
+
+        The query's ``limit`` is included in the SQL (as ``LIMIT n``); set a
+        large limit, or strip the trailing clause, if you intend to run it
+        yourself without Lightdash's row cap.
+
+        Returns:
+            The compiled SQL as a string.
+
+        Example:
+            sql = (
+                model.query()
+                .metrics(model.metrics.revenue)
+                .dimensions(model.dimensions.country)
+                .filter(model.dimensions.status == "active")
+                .compile()
+            )
+        """
+        if self._model._client is None:
+            raise RuntimeError("Model not properly initialized with client reference")
+
+        client = self._model._client
+        payload = self._build_payload()
+
+        # The v1 compileQuery endpoint is stricter than the v2 query endpoint:
+        # it requires additionalMetrics and an `id` on every filter group/rule.
+        payload.setdefault("additionalMetrics", [])
+        filters = payload.get("filters", {})
+        has_rules = any(
+            group.get("and") or group.get("or") for group in filters.values()
+        )
+        payload["filters"] = _inject_filter_ids(filters) if has_rules else {}
+
+        result = client._make_request(
+            "POST",
+            f"/api/v1/projects/{client.project_uuid}/explores/{self._model.name}/compileQuery",
+            json=payload,
+        )
+        return result["query"]
 
     def to_records(self) -> List[Dict[str, Any]]:
         """Get all query results as a list of dictionaries."""
