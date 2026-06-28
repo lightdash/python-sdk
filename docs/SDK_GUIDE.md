@@ -373,6 +373,40 @@ lazy_df = result.to_df_lazy()
 
 ---
 
+## Compiling to SQL
+
+Use `.compile()` to get the warehouse SQL for a query **without executing it**.
+Nothing is run and no rows are fetched — it returns the exact SQL Lightdash
+would issue:
+
+```python
+sql = (
+    model.query()
+    .metrics(model.metrics.revenue)
+    .dimensions(model.dimensions.country)
+    .filter(model.dimensions.status == "active")
+    .compile()
+)
+print(sql)
+# SELECT ... FROM ... WHERE ... GROUP BY ... LIMIT 500
+```
+
+This is handy for inspecting or debugging a query, or for running it **directly
+against your warehouse** when you need more rows than the query API returns —
+for example feeding it to BigQuery/bigframes, dbt, or a data pipeline:
+
+```python
+import bigframes.pandas as bpd
+
+sql = model.query().metrics(model.metrics.revenue).limit(10_000_000).compile()
+df = bpd.read_gbq(sql)   # run it yourself, no Lightdash row cap
+```
+
+The query's `limit` is included in the SQL as `LIMIT n`; set a large limit (or
+strip the trailing clause) if you're running it yourself.
+
+---
+
 ## SQL Runner
 
 Execute raw SQL queries directly against your data warehouse:
