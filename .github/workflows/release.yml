@@ -27,9 +27,8 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install package + dev deps
-        run: |
-          uv venv
-          uv pip install -e ".[dev]"
+        # setup-uv already created .venv and set VIRTUAL_ENV.
+        run: uv pip install -e ".[dev]"
       - name: Run unit tests
         run: |
           uv run pytest tests/ \
