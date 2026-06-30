@@ -28,3 +28,24 @@ include = ["lightdash*"]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 log_cli_level = "DEBUG"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+# Releases are automated by GitHub Actions (.github/workflows/release.yml).
+# python-semantic-release computes the next version from Conventional Commit
+# messages (feat: -> minor, fix: -> patch, BREAKING CHANGE -> major) since the
+# last "v*" tag, bumps the version below, tags, creates a GitHub Release, and
+# publishes to PyPI. Do not bump `version` by hand.
+[tool.semantic_release]
+version_toml = ["pyproject.toml:project.version"]
+build_command = "pip install build && python -m build"
+commit_message = "chore(release): v{version} [skip ci]"
+tag_format = "v{version}"
+
+[tool.semantic_release.branches.main]
+match = "main"
+
+[tool.semantic_release.changelog]
+exclude_commit_patterns = ['''chore\(release\):.*''']
