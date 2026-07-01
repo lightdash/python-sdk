@@ -58,20 +58,33 @@ allowed_values = set(
 )
 
 
+def _combine(left, right, aggregation: str) -> "CompositeFilter":
+    """Combine two filters/groups under ``aggregation``.
+
+    A child group is flattened in only when it already uses the *same*
+    aggregation; otherwise it is kept as a nested item. This preserves the
+    precedence of mixed AND/OR expressions — e.g. ``a & (b | c)`` keeps the
+    ``(b | c)`` group nested rather than collapsing to ``a & b & c``.
+    """
+    items = []
+    for operand in (left, right):
+        if isinstance(operand, CompositeFilter) and operand.aggregation == aggregation:
+            items.extend(operand.filters)
+        else:
+            items.append(operand)
+    return CompositeFilter(filters=items, aggregation=aggregation)
+
+
 class _FieldFilterMixin:
     """Shared ``&`` / ``|`` combination behavior for single-field filters."""
 
     def __and__(self, other: Union["FieldFilter", "CompositeFilter"]) -> "CompositeFilter":
         """Combine filters with AND: filter1 & filter2"""
-        if isinstance(other, CompositeFilter):
-            return CompositeFilter(filters=[self] + list(other.filters), aggregation="and")
-        return CompositeFilter(filters=[self, other], aggregation="and")
+        return _combine(self, other, "and")
 
     def __or__(self, other: Union["FieldFilter", "CompositeFilter"]) -> "CompositeFilter":
         """Combine filters with OR: filter1 | filter2"""
-        if isinstance(other, CompositeFilter):
-            return CompositeFilter(filters=[self] + list(other.filters), aggregation="or")
-        return CompositeFilter(filters=[self, other], aggregation="or")
+        return _combine(self, other, "or")
 
 
 @dataclass
@@ -150,15 +163,38 @@ class TableCalculationFilter(_FieldFilterMixin):
 FieldFilter = Union[DimensionFilter, TableCalculationFilter]
 
 
+def _target_keys(node) -> set:
+    """Payload keys ('dimensions' / 'tableCalculations') used by the leaf rules
+    within ``node`` (a filter rule or a CompositeFilter)."""
+    if isinstance(node, CompositeFilter):
+        keys = set()
+        for item in node.filters:
+            keys |= _target_keys(item)
+        return keys
+    if isinstance(node, TableCalculationFilter):
+        return {"tableCalculations"}
+    return {"dimensions"}
+
+
+def _serialize_node(node) -> Dict:
+    """Serialize a single-field-type node into either a rule dict or a nested
+    ``{and|or: [...]}`` group dict."""
+    if isinstance(node, CompositeFilter):
+        return {node.aggregation: [_serialize_node(item) for item in node.filters]}
+    return node.to_dict()
+
+
 @dataclass
 class CompositeFilter:
-    """
-    Filters are a list of field filters (on dimensions and table calculations)
-    that are applied to a query.
-    Later this will also represent complex filters with AND, OR, NOT, etc.
+    """A boolean group of filters applied to a query.
+
+    ``filters`` may contain individual filter rules *and* other
+    ``CompositeFilter`` groups, so nested boolean expressions such as
+    ``a & (b | c)`` are represented (and serialized) with their precedence
+    preserved.
     """
 
-    filters: List[FieldFilter] = field(default_factory=list)
+    filters: List[Union[FieldFilter, "CompositeFilter"]] = field(default_factory=list)
     aggregation: str = "and"
 
     def __post_init__(self):
@@ -168,51 +204,53 @@ class CompositeFilter:
             )
 
     def to_dict(self):
+        keys = _target_keys(self)
+
+        # Dimension-only (or empty) — serialize the tree under "dimensions".
+        if "tableCalculations" not in keys:
+            return {"dimensions": _serialize_node(self)}
+
+        # Table-calculation-only.
+        if "dimensions" not in keys:
+            return {
+                "dimensions": {self.aggregation: []},
+                "tableCalculations": _serialize_node(self),
+            }
+
+        # Mixed dimension + table-calculation filters. The API keeps these in
+        # separate top-level groups that are implicitly AND-ed, so they can only
+        # be split when the outer combinator is AND.
+        if self.aggregation != "and":
+            raise ValueError(
+                "Cannot combine dimension and table calculation filters with OR: "
+                "the Lightdash API stores them in separate groups that are AND-ed "
+                "together. Use AND between the two field types, or run separate "
+                "queries."
+            )
+
         dimensions = []
         table_calculations = []
-        for f in self.filters:
-            # Check that the filter is not a composite filter
-            if not hasattr(f, "field"):
-                raise TypeError("Multi-level filter composites not supported yet")
-            # Multiple filters may target the same field, e.g. a date range
-            # expressed as (dim >= start) & (dim <= end).
-            if isinstance(f, TableCalculationFilter):
-                table_calculations.append(f.to_dict())
+        for item in self.filters:
+            item_keys = _target_keys(item)
+            if "tableCalculations" not in item_keys:
+                dimensions.append(_serialize_node(item))
+            elif "dimensions" not in item_keys:
+                table_calculations.append(_serialize_node(item))
             else:
-                dimensions.append(f.to_dict())
-        out = {"dimensions": {self.aggregation: dimensions}}
-        # Only include the tableCalculations group when present, so existing
-        # dimension-only payloads are unchanged.
-        if table_calculations:
-            out["tableCalculations"] = {self.aggregation: table_calculations}
-        return out
+                raise ValueError(
+                    "A filter group mixes dimension and table calculation filters "
+                    "and cannot be represented. Keep each field type in its own "
+                    "group, combined with AND."
+                )
+        return {
+            "dimensions": {"and": dimensions},
+            "tableCalculations": {"and": table_calculations},
+        }
 
     def __and__(self, other: Union[FieldFilter, "CompositeFilter"]) -> "CompositeFilter":
         """Combine with another filter using AND: composite & filter"""
-        if isinstance(other, CompositeFilter):
-            # Flatten if both are AND composites
-            if self.aggregation == "and" and other.aggregation == "and":
-                return CompositeFilter(
-                    filters=list(self.filters) + list(other.filters),
-                    aggregation="and"
-                )
-            # Otherwise wrap as nested (not fully supported yet, but preserve structure)
-            return CompositeFilter(filters=list(self.filters) + list(other.filters), aggregation="and")
-        # Add single filter to existing composite
-        if self.aggregation == "and":
-            return CompositeFilter(filters=list(self.filters) + [other], aggregation="and")
-        return CompositeFilter(filters=list(self.filters) + [other], aggregation="and")
+        return _combine(self, other, "and")
 
     def __or__(self, other: Union[FieldFilter, "CompositeFilter"]) -> "CompositeFilter":
         """Combine with another filter using OR: composite | filter"""
-        if isinstance(other, CompositeFilter):
-            # Flatten if both are OR composites
-            if self.aggregation == "or" and other.aggregation == "or":
-                return CompositeFilter(
-                    filters=list(self.filters) + list(other.filters),
-                    aggregation="or"
-                )
-            return CompositeFilter(filters=list(self.filters) + list(other.filters), aggregation="or")
-        if self.aggregation == "or":
-            return CompositeFilter(filters=list(self.filters) + [other], aggregation="or")
-        return CompositeFilter(filters=list(self.filters) + [other], aggregation="or")
+        return _combine(self, other, "or")
